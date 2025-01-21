@@ -1,0 +1,23 @@
+[
+  {
+    "Name": "JobTitles",
+    "Author": "keifufu",
+    "Punchline": "No longer will you be an Archmage Monk, set a different title per job!",
+    "Description": "Changes your title based on the current job, with per-character settings.",
+    "InternalName": "JobTitles",
+    "AssemblyVersion": "1.0.0.0",
+    "TestingAssemblyVersion": "1.0.0.0",
+    "RepoUrl": "https://github.com/keifufu/JobTitles",
+    "ApplicableVersion": "any",
+    "DalamudApiLevel": 11,
+    "TestingDalamudApiLevel": 11,
+    "IsHide": "False",
+    "IsTestingExclusive": "False",
+    "DownloadCount": 0,
+    "LastUpdate": 1737410950,
+    "DownloadLinkInstall": "https://github.com/keifufu/JobTitles/releases/download/1.0.0.0/JobTitles.zip",
+    "DownloadLinkUpdate": "https://github.com/keifufu/JobTitles/releases/download/1.0.0.0/JobTitles.zip",
+    "DownloadLinkTesting": "https://github.com/keifufu/JobTitles/releases/download/1.0.0.0/JobTitles.zip",
+    "IconUrl": "https://raw.githubusercontent.com/keifufu/JobTitles/main/images/icon.png"
+  }
+]
