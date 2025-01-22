@@ -1,5 +1,6 @@
-﻿using FFXIVClientStructs.FFXIV.Client.System.String;
+using FFXIVClientStructs.FFXIV.Client.System.String;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
+using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.UI;
 
 using Dalamud.Game.ClientState.Objects.Enums;
@@ -186,46 +187,18 @@ public sealed class Plugin : IDalamudPlugin
     }
   }
 
-  public static unsafe void SendChatMessage(string message)
-  {
-    if (!message.StartsWith("/title")) return; // Why not? Doesn't sound like a bad idea.
-    var utf8 = Utf8String.FromString(message);
-
-    try
-    {
-      if (utf8->Length == 0 || utf8->Length > 500) return;
-
-      var oldLength = utf8->Length;
-      utf8->SanitizeString(0x27F, null);
-      if (utf8->Length != oldLength) return;
-
-      var uiModule = UIModule.Instance();
-      if (uiModule == null) return;
-
-      uiModule->ProcessChatBoxEntry(utf8);
-    }
-    finally
-    {
-      if (utf8 != null)
-      {
-        utf8->Dtor(true);
-      }
-    }
-  }
-
   public static void SetTitle(int titleId)
   {
     if (titleId == -1) return; // "Do not override"
 
-    if (titleId == 0)
+    // Make sure it exists
+    if (DataManager.Excel.GetSheet<Title>().TryGetRow((uint)titleId, out var _))
     {
-      SendChatMessage("/title clear");
-      return;
-    }
-
-    if (DataManager.Excel.GetSheet<Title>().TryGetRow((uint)titleId, out var titleRow))
-    {
-      SendChatMessage($"/title set \"{GetTitleName(titleRow)}\"");
+      unsafe
+      {
+        var uiState = UIState.Instance();
+        uiState->TitleController.SendTitleIdUpdate((ushort)titleId);
+      }
     }
   }
 
@@ -311,7 +284,9 @@ public class ConfigWindow : Window, IDisposable
         }
 
         return;
-      } else {
+      }
+      else
+      {
         Size = new Vector2(360, 400);
       }
     }
