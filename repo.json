@@ -10,8 +10,8 @@
       "Title"
     ],
     "InternalName": "JobTitles",
-    "AssemblyVersion": "0.0.1.1",
-    "TestingAssemblyVersion": "0.0.1.1",
+    "AssemblyVersion": "0.0.1.2",
+    "TestingAssemblyVersion": "0.0.1.2",
     "RepoUrl": "https://github.com/keifufu/JobTitles",
     "ApplicableVersion": "any",
     "DalamudApiLevel": 11,
@@ -20,9 +20,9 @@
     "IsTestingExclusive": "False",
     "DownloadCount": 0,
     "LastUpdate": 1737410950,
-    "DownloadLinkInstall": "https://github.com/keifufu/JobTitles/releases/download/0.0.1.1/JobTitles.zip",
-    "DownloadLinkUpdate": "https://github.com/keifufu/JobTitles/releases/download/0.0.1.1/JobTitles.zip",
-    "DownloadLinkTesting": "https://github.com/keifufu/JobTitles/releases/download/0.0.1.1/JobTitles.zip",
+    "DownloadLinkInstall": "https://github.com/keifufu/JobTitles/releases/download/0.0.1.2/JobTitles.zip",
+    "DownloadLinkUpdate": "https://github.com/keifufu/JobTitles/releases/download/0.0.1.2/JobTitles.zip",
+    "DownloadLinkTesting": "https://github.com/keifufu/JobTitles/releases/download/0.0.1.2/JobTitles.zip",
     "IconUrl": "https://raw.githubusercontent.com/keifufu/JobTitles/main/images/icon.png"
   }
 ]
