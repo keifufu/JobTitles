@@ -140,14 +140,13 @@ public sealed class Plugin : IDalamudPlugin
   {
     if (titleId == TitleIds.DoNotOverride) return;
 
-    if (DataManager.Excel.GetSheet<Title>().TryGetRow((uint)titleId, out var _))
-    {
-      TitleController.SendTitleIdUpdate((ushort)titleId);
-    }
-    else
+    if (!DataManager.Excel.GetSheet<Title>().TryGetRow((uint)titleId, out var _))
     {
       Logger.Error($"Unable to retrieve data for title row id: {titleId}. Not updating title.");
+      return;
     }
+
+    TitleController.SendTitleIdUpdate((ushort)titleId);
   }
 }
 
@@ -333,7 +332,7 @@ public class ConfigWindow : Window, IDisposable
   }
 
   // Job ordering following the in-game character screen order.
-  // Tanks -> Healers -> Melee -> Phys. DPS -> Magical DPS -> Crafters -> Gatherers
+  // Tanks -> Healers -> Melee -> Phys. Ranged DPS -> Magical Ranged DPS -> Crafters -> Gatherers,
   // with jobs within those sections being ordered like in-game as well.
   private static uint[] GetOrderedJobs() => new uint[]
   {
