@@ -1,12 +1,26 @@
 #!/usr/bin/env bash
 
-VERSION="$1"
+CSPROJ_FILE="JobTitles.csproj"
+VERSION=$(grep -oP '(?<=<Version>).*?(?=</Version>)' "$CSPROJ_FILE")
 
 if [[ -z "$VERSION" ]]; then
-  echo "Error: No version provided."
-  echo "Usage: $0 <version>"
+  echo "Error: Unable to extract version from $CSPROJ_FILE."
   exit 1
 fi
 
+if git rev-parse "refs/tags/$VERSION" >/dev/null 2>&1; then
+  echo "Error: Git tag '$VERSION' already exists."
+  exit 1
+fi
+
+if ! git diff --quiet; then
+  echo "Error: There are unstaged changes. Please commit or stash them before releasing."
+  exit 1
+fi
+
+echo "Tagging and pushing version: $VERSION";
+
 git tag -a "$VERSION" -m "Release $VERSION"
 git push origin "$VERSION"
+
+echo "Tag '$VERSION' has been created and pushed successfully."
