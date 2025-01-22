@@ -4,6 +4,11 @@
     "Author": "keifufu",
     "Punchline": "No longer will you be an Archmage Monk, set a different title per job!",
     "Description": "Changes your title based on the current job, with per-character settings.",
+    "Tags": [
+      "Job",
+      "Class",
+      "Title"
+    ],
     "InternalName": "JobTitles",
     "AssemblyVersion": "0.0.1.1",
     "TestingAssemblyVersion": "0.0.1.1",

@@ -2,4 +2,8 @@ name: JobTitles
 author: keifufu
 punchline: No longer will you be an Archmage Monk, set a different title per job!
 description: Changes your title based on the current job, with per-character settings.
+tags:
+  - Job
+  - Class
+  - Title
 repo_url: https://github.com/keifufu/JobTitles
