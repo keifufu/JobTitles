@@ -57,6 +57,7 @@ public class Localizations
   {
     PleaseLogIn,
     RequestTitleList,
+    RequestTitleListDescription,
     None,
     DoNotOverride,
     Search,
@@ -69,6 +70,7 @@ public class Localizations
       {
         { Phrase.PleaseLogIn, "Please log in to start configuring JobTitles." },
         { Phrase.RequestTitleList, "Request Title List" },
+        { Phrase.RequestTitleListDescription, "Click the button below to load your unlocked titles." },
         { Phrase.None, "None" },
         { Phrase.DoNotOverride, "Do not override" },
         { Phrase.Search, "Search" },
@@ -79,6 +81,7 @@ public class Localizations
       {
         { Phrase.PleaseLogIn, "Bitte logge dich ein um JobTitles zu konfigurieren." },
         { Phrase.RequestTitleList, "Titelliste anfordern" },
+        { Phrase.RequestTitleListDescription, "Den Knopf drücken um Ihre freigeschalteten Titel zu laden." },
         { Phrase.None, "Keinen Titel" },
         { Phrase.DoNotOverride, "Nicht ersetzen" },
         { Phrase.Search, "Suche" },
@@ -281,21 +284,35 @@ public class ConfigWindow : Window, IDisposable
     windowTitle += "###JobTitles";
     WindowName = windowTitle;
 
-    // TODO: better ui for this request button, maybe a description for what it does/why its needed?
     unsafe
     {
       var titleList = UIState.Instance()->TitleList;
       if (!titleList.DataReceived)
       {
+        Size = new Vector2(360, 75);
+
+        string requestTitleListDescription = Localizations.Get(language, Localizations.Phrase.RequestTitleListDescription);
+        float textWidth = ImGui.CalcTextSize(requestTitleListDescription).X;
+        float textX = (ImGui.GetContentRegionAvail().X - textWidth) * 0.5f;
+        ImGui.SetCursorPosX(ImGui.GetCursorPosX() + textX);
+        ImGui.TextUnformatted(requestTitleListDescription);
+
+        string requestTitleList = Localizations.Get(language, Localizations.Phrase.RequestTitleList);
+        float availableWidth = ImGui.GetContentRegionAvail().X;
+        float buttonWidth = ImGui.CalcTextSize(requestTitleList).X + ImGui.GetStyle().FramePadding.X * 2;
+        float buttonX = (availableWidth - buttonWidth) * 0.5f;
+        ImGui.SetCursorPosX(ImGui.GetCursorPosX() + buttonX);
         using (ImRaii.Disabled(titleList.DataPending))
         {
-          if (ImGui.Button(Localizations.Get(language, Localizations.Phrase.RequestTitleList)))
+          if (ImGui.Button(requestTitleList))
           {
             titleList.RequestTitleList();
           }
         }
 
         return;
+      } else {
+        Size = new Vector2(360, 400);
       }
     }
 
