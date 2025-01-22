@@ -13,8 +13,8 @@ if git rev-parse "refs/tags/$VERSION" >/dev/null 2>&1; then
   exit 1
 fi
 
-if ! git diff --quiet; then
-  echo "Error: There are unstaged changes. Please commit or stash them before releasing."
+if ! git diff --quiet @{u}; then
+  echo "Error: There are unpushed commits. Please push them before releasing."
   exit 1
 fi
 
