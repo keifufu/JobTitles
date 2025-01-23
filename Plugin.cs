@@ -1,9 +1,6 @@
-using FFXIVClientStructs.FFXIV.Client.System.String;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.Game;
-using FFXIVClientStructs.FFXIV.Client.UI;
 
-using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
@@ -17,12 +14,12 @@ using Dalamud.Game;
 using Dalamud.IoC;
 
 using Lumina.Excel.Sheets;
+using Lumina.Data;
 using ImGuiNET;
 
 using System.Runtime.CompilerServices;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Reflection;
 using System.Numerics;
 using System.Linq;
 using System;
@@ -140,7 +137,7 @@ public sealed class Plugin : IDalamudPlugin
   {
     if (titleId == TitleIds.DoNotOverride) return;
 
-    if (!DataManager.Excel.GetSheet<Title>().TryGetRow((uint)titleId, out var _))
+    if (!DataManager.Excel.GetSheet<Title>(Loc.Language).TryGetRow((uint)titleId, out var _))
     {
       Logger.Error($"Unable to retrieve data for title row id: {titleId}. Not updating title.");
       return;
@@ -157,8 +154,12 @@ public class ConfigWindow : Window, IDisposable
 
   public ConfigWindow(Plugin plugin) : base("JobTitles###JobTitles")
   {
-    Flags = ImGuiWindowFlags.NoResize;
-    Size = new Vector2(360, 400);
+    Flags = ImGuiWindowFlags.NoResize | ImGuiWindowFlags.AlwaysAutoResize;
+    SizeConstraints = new WindowSizeConstraints
+    {
+      MinimumSize = new Vector2(380, 0),
+      MaximumSize = new Vector2(380, 400),
+    };
     SizeCondition = ImGuiCond.Always;
   }
 
@@ -166,25 +167,21 @@ public class ConfigWindow : Window, IDisposable
 
   public override void Draw()
   {
-    var language = Plugin.ClientState.ClientLanguage;
-    var localPlayer = Plugin.ClientState.LocalPlayer;
+    UpdateWindowTitle();
 
-    UpdateWindowTitle(localPlayer);
-
-    if (localPlayer == null)
+    if (Plugin.ClientState.LocalPlayer == null)
     {
-      DrawLoginPrompt(language);
+      DrawLoginPrompt();
       return;
     }
 
     if (!Plugin.TitleList.DataReceived)
     {
-      DrawTitleListRequest(language);
+      DrawTitleListRequest();
       return;
     }
 
-    Size = new Vector2(360, 400);
-    DrawJobTitleSelect(language);
+    DrawJobTitleSelect();
   }
 
   private void DrawHorizontallyCenteredText(string text)
@@ -205,15 +202,15 @@ public class ConfigWindow : Window, IDisposable
       if (ImGui.Button(text) && !disabledCondition) onClick?.Invoke();
   }
 
-  private void DrawLoginPrompt(ClientLanguage language)
+  private void DrawLoginPrompt()
   {
-    Size = new Vector2(360, 50);
-
-    DrawHorizontallyCenteredText(Loc.Get(language, Loc.Phrase.PleaseLogIn));
+    DrawHorizontallyCenteredText(Loc.Get(Loc.Phrase.PleaseLogIn));
   }
 
-  private void UpdateWindowTitle(IPlayerCharacter? localPlayer)
+  private void UpdateWindowTitle()
   {
+    var localPlayer = Plugin.ClientState.LocalPlayer;
+
     if (localPlayer == null)
     {
       WindowName = "Job Titles###JobTitles";
@@ -224,13 +221,11 @@ public class ConfigWindow : Window, IDisposable
     WindowName = $"Job Titles ({localPlayer.Name}){debugFlag}###JobTitles";
   }
 
-  private void DrawTitleListRequest(ClientLanguage language)
+  private void DrawTitleListRequest()
   {
-    Size = new Vector2(360, 75);
-
-    DrawHorizontallyCenteredText(Loc.Get(language, Loc.Phrase.RequestTitleListDescription));
+    DrawHorizontallyCenteredText(Loc.Get(Loc.Phrase.RequestTitleListDescription));
     DrawHorizontallyCenteredButton(
-      Loc.Get(language, Loc.Phrase.RequestTitleList),
+      Loc.Get(Loc.Phrase.RequestTitleList),
       Plugin.TitleList.DataPending,
       () =>
       {
@@ -240,12 +235,12 @@ public class ConfigWindow : Window, IDisposable
     );
   }
 
-  private void DrawJobTitleSelect(ClientLanguage language)
+  private void DrawJobTitleSelect()
   {
     var config = Plugin.GetCharacterConfig();
     foreach (var jobId in GetOrderedJobs())
     {
-      if (!Plugin.DataManager.Excel.GetSheet<ClassJob>().TryGetRow(jobId, out var jobRow))
+      if (!Plugin.DataManager.Excel.GetSheet<ClassJob>(Loc.Language).TryGetRow(jobId, out var jobRow))
       {
         Logger.Error($"Unable to retrieve data for classjob row id: {jobId}. Not drawing title selection.");
         continue;
@@ -260,11 +255,11 @@ public class ConfigWindow : Window, IDisposable
       }
 
       int selectedTitleId = config.JobTitleMappings.GetValueOrDefault(jobId, TitleIds.DoNotOverride);
-      DrawJobTitleDropdown(language, jobRow, jobIcon, jobId, selectedTitleId);
+      DrawJobTitleDropdown(jobRow, jobIcon, jobId, selectedTitleId);
     }
   }
 
-  private void DrawJobTitleDropdown(ClientLanguage language, ClassJob jobRow, ISharedImmediateTexture jobIcon, uint jobId, int selectedTitleId)
+  private void DrawJobTitleDropdown(ClassJob jobRow, ISharedImmediateTexture jobIcon, uint jobId, int selectedTitleId)
   {
     // Draw Job Icon with vertically centered Job Name
     var jobName = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(jobRow.Name.ExtractText());
@@ -280,19 +275,20 @@ public class ConfigWindow : Window, IDisposable
     ImGui.SetCursorPosY(ImGui.GetCursorPosY() + verticalOffset);
     ImGui.Text(jobName);
     if (ImGui.IsItemHovered())
-      ImGui.SetTooltip(Loc.Get(language, Loc.Phrase.JobNameTooltip).Replace("%s", jobName));
-    ImGui.SetCursorPosY(ImGui.GetCursorPosY() - verticalOffset);
+      using (ImRaii.Tooltip())
+        ImGui.TextUnformatted(Loc.Get(Loc.Phrase.JobNameTooltip).Replace("%s", jobName));
+    // ImGui.SetCursorPosY(ImGui.GetCursorPosY() - verticalOffset);
 
     // Set size and distance for the dropdown
     ImGui.SameLine(140 * ImGuiHelpers.GlobalScale);
-    ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
+    ImGui.SetNextItemWidth((232 * ImGuiHelpers.GlobalScale) - (ImGui.GetStyle().ScrollbarSize / ImGuiHelpers.GlobalScale));
 
-    var selectedTitleName = GetTitleName(language, selectedTitleId);
+    var selectedTitleName = GetTitleName(selectedTitleId);
     using var dropdown = ImRaii.Combo($"###Title{jobRow.RowId}", selectedTitleName);
 
     if (dropdown)
     {
-      DrawDropdownContents(language, jobId, selectedTitleId);
+      DrawDropdownContents(jobId, selectedTitleId);
     }
     else
     {
@@ -300,7 +296,7 @@ public class ConfigWindow : Window, IDisposable
     }
   }
 
-  private void DrawDropdownContents(ClientLanguage language, uint jobId, int selectedTitleId)
+  private void DrawDropdownContents(uint jobId, int selectedTitleId)
   {
     if (_dropdownDrawState[jobId])
     {
@@ -309,12 +305,14 @@ public class ConfigWindow : Window, IDisposable
       ImGui.SetKeyboardFocusHere();
     }
 
-    ImGui.InputTextWithHint("###TextSearch", Loc.Get(language, Loc.Phrase.Search), ref _searchTerm, 256, ImGuiInputTextFlags.AutoSelectAll);
+    ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - (ImGui.GetStyle().ScrollbarSize / ImGuiHelpers.GlobalScale));
+    ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 2);
+    ImGui.InputTextWithHint("###TextSearch", Loc.Get(Loc.Phrase.Search), ref _searchTerm, 256, ImGuiInputTextFlags.AutoSelectAll);
 
-    DrawSelectable(Loc.Get(language, Loc.Phrase.DoNotOverride), TitleIds.DoNotOverride, jobId, selectedTitleId);
-    DrawSelectable(Loc.Get(language, Loc.Phrase.None), TitleIds.None, jobId, selectedTitleId);
+    DrawSelectable(Loc.Get(Loc.Phrase.DoNotOverride), TitleIds.DoNotOverride, jobId, selectedTitleId);
+    DrawSelectable(Loc.Get(Loc.Phrase.None), TitleIds.None, jobId, selectedTitleId);
 
-    foreach (var title in Plugin.DataManager.Excel.GetSheet<Title>().Where(t => t.RowId != 0 && Plugin.IsTitleUnlocked(t.RowId)))
+    foreach (var title in Plugin.DataManager.Excel.GetSheet<Title>(Loc.Language).Where(t => t.RowId != 0 && Plugin.IsTitleUnlocked(t.RowId)))
     {
       DrawSelectable(Plugin.GetTitleName(title), (int)title.RowId, jobId, selectedTitleId);
     }
@@ -340,18 +338,18 @@ public class ConfigWindow : Window, IDisposable
     25, 27, 35, 42, 36, 08, 09, 10, 11, 12, 13, 14, 15, 16, 17, 18,
   };
 
-  private string GetTitleName(ClientLanguage language, int titleId)
+  private string GetTitleName(int titleId)
   {
     if (titleId == TitleIds.DoNotOverride)
-      return Loc.Get(language, Loc.Phrase.DoNotOverride);
+      return Loc.Get(Loc.Phrase.DoNotOverride);
 
     if (titleId == TitleIds.None)
-      return Loc.Get(language, Loc.Phrase.None);
+      return Loc.Get(Loc.Phrase.None);
 
-    if (!Plugin.DataManager.Excel.GetSheet<Title>().TryGetRow((uint)titleId, out var titleRow))
+    if (!Plugin.DataManager.Excel.GetSheet<Title>(Loc.Language).TryGetRow((uint)titleId, out var titleRow))
     {
       Logger.Error($"Unable to retrieve data for title row id: {titleId}.");
-      return "Failed to retrieve title";
+      return "[ERROR] See /xllog.";
     }
 
     return Plugin.GetTitleName(titleRow);
@@ -371,7 +369,8 @@ public class Configuration : IPluginConfiguration
   public Dictionary<ulong, CharacterConfig> CharacterConfigs { get; set; } = new();
   public bool DebugMode { get; set; } = false;
 
-  public void Save() => Plugin.PluginInterface.SavePluginConfig(this);
+  public void Save() =>
+    Plugin.PluginInterface.SavePluginConfig(this);
 
   public static Configuration Load() =>
     Plugin.PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
@@ -385,6 +384,15 @@ public static class TitleIds
 
 public class Loc
 {
+  public static Language Language = Plugin.ClientState.ClientLanguage switch
+  {
+    ClientLanguage.Japanese => Language.Japanese,
+    ClientLanguage.English => Language.English,
+    ClientLanguage.German => Language.German,
+    ClientLanguage.French => Language.French,
+    _ => Language.English,
+  };
+
   public enum Phrase
   {
     PleaseLogIn,
@@ -396,9 +404,9 @@ public class Loc
     Search,
   }
 
-  private static readonly Dictionary<ClientLanguage, Dictionary<Phrase, string>> Translations = new()
+  private static readonly Dictionary<Language, Dictionary<Phrase, string>> Translations = new()
   {
-    { ClientLanguage.English, new Dictionary<Phrase, string>
+    { Language.English, new Dictionary<Phrase, string>
       {
         { Phrase.PleaseLogIn, "Please log in to start configuring JobTitles." },
         { Phrase.RequestTitleList, "Request Title List" },
@@ -409,7 +417,7 @@ public class Loc
         { Phrase.Search, "Search" },
       }
     },
-    { ClientLanguage.German, new Dictionary<Phrase, string>
+    { Language.German, new Dictionary<Phrase, string>
       {
         { Phrase.PleaseLogIn, "Bitte logge dich ein um JobTitles zu konfigurieren." },
         { Phrase.RequestTitleList, "Titelliste anfordern" },
@@ -417,19 +425,19 @@ public class Loc
         { Phrase.JobNameTooltip, $"Konfiguriere den Titel für %s.\nNicht ersetzen - verändert den Titel nicht wenn du die Klasse wechselst\nKeinen Titel - Entfernt deinen Titel" },
         { Phrase.None, "Keinen Titel" },
         { Phrase.DoNotOverride, "Nicht ersetzen" },
-        { Phrase.Search, "Suche" },
+        { Phrase.Search, "Suchen" },
       }
     },
   };
 
-  public static string Get(ClientLanguage language, Phrase phrase) =>
-    Translations.TryGetValue(language, out var translations)
+  public static string Get(Phrase phrase) =>
+    Translations.TryGetValue(Language, out var translations)
     && translations.TryGetValue(phrase, out var translation)
       ? translation
       : GetFallbackTranslation(phrase);
 
   public static string GetFallbackTranslation(Phrase phrase) =>
-    Translations.TryGetValue(ClientLanguage.English, out var defaultTranslations)
+    Translations.TryGetValue(Language.English, out var defaultTranslations)
     && defaultTranslations.TryGetValue(phrase, out var defaultTranslation)
       ? defaultTranslation
       : phrase.ToString();
