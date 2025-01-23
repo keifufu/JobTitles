@@ -34,7 +34,7 @@ jobs:
         run: dotnet build --configuration Release
 
       - name: Store artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: JobTitles
           path: .\bin\Release\JobTitles\*
