@@ -2,7 +2,11 @@ name: Build JobTitles
 
 on:
   push:
-    branches: "main"
+    branches:
+      - main
+    paths:
+      - Plugin.cs
+      - JobTitles.csproj
 
 concurrency:
   group: build_jt
