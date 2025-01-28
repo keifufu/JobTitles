@@ -5,8 +5,8 @@ on:
     branches:
       - main
     paths:
-      - Plugin.cs
-      - JobTitles.csproj
+      - "**/*.cs"
+      - "**/*.csproj"
 
 concurrency:
   group: build_jt
