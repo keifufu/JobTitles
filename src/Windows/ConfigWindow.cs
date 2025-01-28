@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Numerics;
 using Dalamud.Interface.Textures;
@@ -11,7 +12,6 @@ using ImGuiNET;
 using JobTitles.Utils;
 using Lumina.Data;
 using Lumina.Excel.Sheets;
-using System.IO;
 
 namespace JobTitles.Windows;
 
@@ -20,7 +20,7 @@ public class ConfigWindow : Window, IDisposable
   private string _jobSearchTerm = string.Empty;
   private string _titleSearchTerm = string.Empty;
   private readonly Dictionary<uint, bool> _dropdownDrawState = new();
-  
+
   public ConfigWindow(Plugin plugin) : base("JobTitles###JobTitles")
   {
     Flags = ImGuiWindowFlags.NoResize | ImGuiWindowFlags.AlwaysAutoResize;
