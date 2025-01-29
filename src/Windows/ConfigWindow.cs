@@ -203,7 +203,7 @@ public class ConfigWindow : Window, IDisposable
     }
     ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 5);
     ImGui.SetCursorPosX(ImGui.GetCursorPosX() - 10);
-    ImGui.Image(infoIcon!.GetWrapOrEmpty().ImGuiHandle, new Vector2(40));
+    ImGui.Image(infoIcon!.GetWrapOrEmpty().ImGuiHandle, new Vector2(28 * ImGuiHelpers.GlobalScale));
     if (ImGui.IsItemHovered())
       using (ImRaii.Tooltip())
         ImGui.TextUnformatted(Loc.Get(Loc.Phrase.ClassModeTooltip));
