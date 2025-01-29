@@ -223,6 +223,13 @@ public class ConfigWindow : Window, IDisposable
     }
 
     ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 10);
+    var printTitleChangesInChat = Plugin.Configuration.PrintTitleChangesInChat;
+    if (ImGui.Checkbox(Loc.Get(Loc.Phrase.PrintTitleChangesInChat), ref printTitleChangesInChat))
+    {
+      Plugin.Configuration.PrintTitleChangesInChat = printTitleChangesInChat;
+      Plugin.Configuration.Save();
+    }
+
     var debug = Plugin.Configuration.Debug;
     if (ImGui.Checkbox(Loc.Get(Loc.Phrase.Debug), ref debug))
     {

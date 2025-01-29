@@ -34,6 +34,8 @@ public class Loc
     InheritJobTitles,
     ShowClasses,
     Debug,
+    PrintTitleChangesInChat,
+    TitleChangedTo,
   }
 
   private static readonly Dictionary<Language, Dictionary<Phrase, string>> Translations = new()
@@ -63,7 +65,9 @@ public class Loc
         { Phrase.ClassModeTooltip, "Whether to allow for class titles to be set independently,\nor for them to inherit from the job they upgrade to." },
         { Phrase.InheritJobTitles, "Inherit class titles from jobs" },
         { Phrase.ShowClasses, "Show classes separately" },
-        { Phrase.Debug, "Debug" },
+        { Phrase.Debug, "Enable Debug Logging" },
+        { Phrase.PrintTitleChangesInChat, "Print Title Changes in Chat" },
+        { Phrase.TitleChangedTo, "Title changed to:" },
       }
     },
     { Language.German, new Dictionary<Phrase, string>
@@ -91,7 +95,9 @@ public class Loc
         { Phrase.ClassModeTooltip, "Ob Klassentitel unabhängig festgelegt werden dürfen,\norder ob sie von dem Job übernommen werden, zu dem Sie wechseln." },
         { Phrase.InheritJobTitles, "Klassentitel von Jobs übernehmen" },
         { Phrase.ShowClasses, "Klassen separat anzeigen" },
-        { Phrase.Debug, "Debug" },
+        { Phrase.Debug, "Debug-Logging aktivieren" },
+        { Phrase.PrintTitleChangesInChat, "Titeländerungen im Chat drucken" },
+        { Phrase.TitleChangedTo, "Titel geändert zu:" },
       }
     },
   };

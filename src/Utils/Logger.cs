@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using Dalamud.Game.Text;
+using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
@@ -9,7 +11,6 @@ namespace JobTitles.Utils;
 
 public static class Logger
 {
-
   private static readonly Dictionary<string, DateTime> _lastLogTime = new();
   private static readonly TimeSpan _throttleInterval = TimeSpan.FromSeconds(15);
 
@@ -17,6 +18,21 @@ public static class Logger
   {
     Error,
     Debug,
+  }
+
+  public static void Chat(string pre, string italic = "", string post = "")
+  {
+    var chatMessage = new XivChatEntry
+    {
+      Type = XivChatType.Debug,
+      Message = new SeStringBuilder()
+        .AddUiForeground("[JobTitles] ", 35)
+        .AddText(pre)
+        .AddItalics(italic)
+        .AddText(post)
+        .Build(),
+    };
+    Plugin.Chat.Print(chatMessage);
   }
 
   private static void Log(LogType type, string text, string functionName, params object[] values)

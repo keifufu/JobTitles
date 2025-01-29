@@ -19,6 +19,7 @@ public class Configuration : IPluginConfiguration
   public Dictionary<ulong, CharacterConfig> CharacterConfigs { get; set; } = new();
   public Language Language { get; set; } = Language.None;
   public ClassModeOption ClassMode { get; set; } = ClassModeOption.InheritJobTitles;
+  public bool PrintTitleChangesInChat { get; set; } = false;
   public bool Debug { get; set; } = false;
 
   public enum ClassModeOption

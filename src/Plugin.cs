@@ -16,6 +16,7 @@ public sealed class Plugin : IDalamudPlugin
   [PluginService] internal static IClientState ClientState { get; private set; } = null!;
   [PluginService] internal static IDataManager DataManager { get; private set; } = null!;
   [PluginService] internal static IPluginLog Log { get; private set; } = null!;
+  [PluginService] internal static IChatGui Chat { get; private set; } = null!;
 
   public static Configuration Configuration { get; set; } = new Configuration();
   public readonly WindowSystem WindowSystem = new("JobTitles");

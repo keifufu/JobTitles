@@ -1,5 +1,7 @@
+using System;
 using Dalamud.Game.ClientState.Objects.Enums;
 using FFXIVClientStructs.FFXIV.Client.Game;
+using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using Lumina.Excel.Sheets;
 
@@ -54,7 +56,33 @@ class TitleUtils
       return;
     }
 
+    ushort currentTitleId = GetCurrentTitleId();
+    if (currentTitleId == (ushort)titleId)
+    {
+      Logger.Debug($"Title is already set to {currentTitleId}. Not sending title id update.");
+      return;
+    }
+
+    Logger.Debug($"Sending title id update: {titleId}({(ushort)titleId}) \"{GetTitleName(titleId)}\"");
+
+    if (Plugin.Configuration.PrintTitleChangesInChat)
+      Logger.Chat(Loc.Get(Loc.Phrase.TitleChangedTo) + " ", GetTitleName(titleId));
+
     TitleController.SendTitleIdUpdate((ushort)titleId);
+  }
+
+  private static unsafe ushort GetCurrentTitleId()
+  {
+    var localPlayer = Plugin.ClientState.LocalPlayer;
+    if (localPlayer != null && localPlayer.Address != IntPtr.Zero)
+    {
+      Character* localChar = (Character*)localPlayer.Address;
+      return localChar->CharacterData.TitleId;
+    }
+    else
+    {
+      return (ushort)TitleIds.None;
+    }
   }
 
   public static bool IsTitleUnlocked(uint titleId)
