@@ -11,8 +11,6 @@ public class Loc
   public enum Phrase
   {
     PleaseLogIn,
-    RequestTitleList,
-    RequestTitleListDescription,
     JobNameTooltip,
     None,
     DoNotOverride,
@@ -36,6 +34,14 @@ public class Loc
     Debug,
     PrintTitleChangesInChat,
     TitleChangedTo,
+    Other,
+    PvP,
+    UseGAROTitleInPvP,
+    TryUseGAROTitleForCurrentJob,
+    SetTitleToX,
+    Yes,
+    No,
+    PvPTooltip,
   }
 
   private static readonly Dictionary<Language, Dictionary<Phrase, string>> Translations = new()
@@ -43,9 +49,7 @@ public class Loc
     { Language.English, new Dictionary<Phrase, string>
       {
         { Phrase.PleaseLogIn, "Please log in to start configuring JobTitles." },
-        { Phrase.RequestTitleList, "Request Title List" },
-        { Phrase.RequestTitleListDescription, "Click the button below to load your unlocked titles." },
-        { Phrase.JobNameTooltip, $"Configure title used for %s.\nDo not override - does not update title when you switch to this job\nNone - Clears your title" },
+        { Phrase.JobNameTooltip, "Configure title used for %s.\nDo not override - does not update title when you switch to this job\nNone - Clears your title" },
         { Phrase.None, "None" },
         { Phrase.DoNotOverride, "Do not override" },
         { Phrase.Search, "Search" },
@@ -68,14 +72,20 @@ public class Loc
         { Phrase.Debug, "Enable Debug Logging" },
         { Phrase.PrintTitleChangesInChat, "Print Title Changes in Chat" },
         { Phrase.TitleChangedTo, "Title changed to:" },
+        { Phrase.Other, "Other" },
+        { Phrase.PvP, "PvP" },
+        { Phrase.UseGAROTitleInPvP, "Use GARO Title in PvP" },
+        { Phrase.TryUseGAROTitleForCurrentJob, "Use GARO Title for current Job if possible" },
+        { Phrase.SetTitleToX, "Set title to '%s' ?"},
+        { Phrase.Yes, "Yes"},
+        { Phrase.No, "No"},
+        { Phrase.PvPTooltip, "Prompts you to change your Title upon entering a PvP duty.\nUseful for GARO achievements."},
       }
     },
     { Language.German, new Dictionary<Phrase, string>
       {
         { Phrase.PleaseLogIn, "Bitte logge dich ein um JobTitles zu konfigurieren." },
-        { Phrase.RequestTitleList, "Titelliste anfordern" },
-        { Phrase.RequestTitleListDescription, "Den Knopf drücken um Ihre freigeschalteten Titel zu laden." },
-        { Phrase.JobNameTooltip, $"Konfiguriere den Titel für %s.\nNicht ersetzen - verändert den Titel nicht wenn du die Klasse wechselst\nKeinen Titel - Entfernt deinen Titel" },
+        { Phrase.JobNameTooltip, "Konfiguriere den Titel für %s.\nNicht ersetzen - verändert den Titel nicht wenn du die Klasse wechselst\nKeinen Titel - Entfernt deinen Titel" },
         { Phrase.None, "Keinen Titel" },
         { Phrase.DoNotOverride, "Nicht ersetzen" },
         { Phrase.Search, "Suchen" },
@@ -98,6 +108,14 @@ public class Loc
         { Phrase.Debug, "Debug-Logging aktivieren" },
         { Phrase.PrintTitleChangesInChat, "Titeländerungen im Chat drucken" },
         { Phrase.TitleChangedTo, "Titel geändert zu:" },
+        { Phrase.Other, "Sonstiges" },
+        { Phrase.PvP, "PvP" },
+        { Phrase.UseGAROTitleInPvP, "GARO Titel in PvP benutzen" },
+        { Phrase.TryUseGAROTitleForCurrentJob, "GARO Title für den aktuellen Job benutzen wenn möglich" },
+        { Phrase.SetTitleToX, "Titel zu '%s' ändern?"},
+        { Phrase.Yes, "Ja"},
+        { Phrase.No, "Nein"},
+        { Phrase.PvPTooltip, "Fordert dich beim Betreten einer PvP duty auf, deinen Titel zu ändern.\nNützlich für GARO-Erfolge."},
       }
     },
   };

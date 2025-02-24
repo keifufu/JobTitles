@@ -10,6 +10,17 @@ namespace JobTitles;
 public class CharacterConfig
 {
   public Dictionary<uint, int> JobTitleMappings { get; set; } = new();
+  public List<byte> CachedTitlesUnlockBitmask { get; set;} = new List<byte>();
+  public ClassModeOption ClassMode { get; set; } = ClassModeOption.InheritJobTitles;
+  public bool UseGAROTitleInPvP { get; set; } = false;
+  public bool TryUseGAROTitleForCurrentJob { get; set; } = false;
+  public int GAROTitleId { get; set; } = TitleUtils.TitleIds.None;
+
+  public enum ClassModeOption
+  {
+    InheritJobTitles,
+    ShowClasses,
+  }
 }
 
 [Serializable]
@@ -18,15 +29,8 @@ public class Configuration : IPluginConfiguration
   public int Version { get; set; } = 0;
   public Dictionary<ulong, CharacterConfig> CharacterConfigs { get; set; } = new();
   public Language Language { get; set; } = Language.None;
-  public ClassModeOption ClassMode { get; set; } = ClassModeOption.InheritJobTitles;
   public bool PrintTitleChangesInChat { get; set; } = false;
   public bool Debug { get; set; } = false;
-
-  public enum ClassModeOption
-  {
-    InheritJobTitles,
-    ShowClasses,
-  }
 
   public void Save() =>
     Plugin.PluginInterface.SavePluginConfig(this);
@@ -52,5 +56,18 @@ public class Configuration : IPluginConfiguration
     }
 
     return characterConfig;
+  }
+
+  public static void SaveCharacterConfig(CharacterConfig characterConfig)
+  {
+    ulong localContentId = Plugin.ClientState.LocalContentId;
+    if (localContentId == 0)
+    {
+      Logger.Debug("Function was called before character was logged in, returning temporary config.");
+      return;
+    }
+
+    Plugin.Configuration.CharacterConfigs[localContentId] = characterConfig;
+    Plugin.Configuration.Save();
   }
 }

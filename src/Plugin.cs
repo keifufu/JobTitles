@@ -20,14 +20,13 @@ public sealed class Plugin : IDalamudPlugin
 
   public static Configuration Configuration { get; set; } = new Configuration();
   public readonly WindowSystem WindowSystem = new("JobTitles");
-  private ConfigWindow ConfigWindow { get; init; }
+  public static ConfigWindow ConfigWindow { get; set; } = new ConfigWindow();
   private const string CommandName = "/jobtitles";
 
   public Plugin()
   {
     Configuration = Configuration.Load();
     Loc.SetLanguage(Configuration.Language);
-    ConfigWindow = new ConfigWindow(this);
     WindowSystem.AddWindow(ConfigWindow);
     CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
     {
@@ -37,14 +36,15 @@ public sealed class Plugin : IDalamudPlugin
     PluginInterface.UiBuilder.OpenConfigUi += ToggleConfigUI;
     PluginInterface.UiBuilder.OpenMainUi += ToggleConfigUI;
     ClientState.ClassJobChanged += JobChanged;
+    ClientState.EnterPvP += TitleUtils.OnEnterPvP;
   }
 
   public void Dispose()
   {
     WindowSystem.RemoveAllWindows();
-    ConfigWindow.Dispose();
     CommandManager.RemoveHandler(CommandName);
     ClientState.ClassJobChanged -= JobChanged;
+    ClientState.EnterPvP -= TitleUtils.OnEnterPvP;
   }
 
   private void DrawUI() => WindowSystem.Draw();

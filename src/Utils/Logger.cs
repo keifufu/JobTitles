@@ -39,8 +39,10 @@ public static class Logger
   {
     string formattedText = $"[{functionName}] {text}";
 
-    bool ShouldLog(string message)
+    bool ShouldLog(LogType type, string message)
     {
+      if (type == LogType.Debug) return true;
+      
       if (_lastLogTime.TryGetValue(message, out var lastLogTime))
       {
         if (DateTime.UtcNow - lastLogTime < _throttleInterval)
@@ -54,7 +56,7 @@ public static class Logger
 
     if (type == LogType.Error)
     {
-      if (ShouldLog(formattedText))
+      if (ShouldLog(type, formattedText))
       {
         Plugin.Log.Error(formattedText, values);
         _lastLogTime[formattedText] = DateTime.UtcNow;
@@ -62,7 +64,7 @@ public static class Logger
     }
     else if (type == LogType.Debug && Plugin.Configuration.Debug)
     {
-      if (ShouldLog(formattedText))
+      if (ShouldLog(type, formattedText))
       {
         Plugin.Log.Debug(formattedText, values);
         _lastLogTime[formattedText] = DateTime.UtcNow;

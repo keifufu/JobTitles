@@ -17,11 +17,13 @@ namespace JobTitles.Windows;
 
 public class ConfigWindow : Window, IDisposable
 {
+  private bool _drawPvPPrompt = false;
+  private int _pvpPromptTitleId = TitleUtils.TitleIds.None;
   private string _jobSearchTerm = string.Empty;
   private string _titleSearchTerm = string.Empty;
   private readonly Dictionary<uint, bool> _dropdownDrawState = new();
 
-  public ConfigWindow(Plugin plugin) : base("JobTitles###JobTitles")
+  public ConfigWindow() : base("JobTitles###JobTitles")
   {
     Flags = ImGuiWindowFlags.NoResize | ImGuiWindowFlags.AlwaysAutoResize;
     SizeCondition = ImGuiCond.Always;
@@ -33,8 +35,31 @@ public class ConfigWindow : Window, IDisposable
     _titleSearchTerm = string.Empty;
   }
 
+  public void OpenPvPPrompt(int titleId)
+  {
+    _drawPvPPrompt = true;
+    _pvpPromptTitleId = titleId;
+    IsOpen = true;
+  }
+
+  public void ClosePvPPrompt()
+  {
+    if (_drawPvPPrompt)
+    {
+      _drawPvPPrompt = false;
+      _pvpPromptTitleId = TitleUtils.TitleIds.None;
+      IsOpen = false;
+    }
+  }
+
   public override void Draw()
   {
+    if (_drawPvPPrompt)
+    {
+      DrawPvPPrompt();
+      return;
+    }
+
     UpdateWindowTitle();
 
     if (Plugin.ClientState.LocalPlayer == null)
@@ -44,12 +69,12 @@ public class ConfigWindow : Window, IDisposable
       return;
     }
 
-    if (!TitleUtils.TitleList.DataReceived)
+    if (ImGui.IsWindowAppearing())
     {
-      UpdateSizeContraints(0);
-      DrawTitleListRequest();
-      return;
+      TitleUtils.RequestTitleList();
     }
+
+    TitleUtils.CacheTitleList();
 
     UpdateSizeContraints();
     if (DrawJobSearch()) return;
@@ -96,7 +121,7 @@ public class ConfigWindow : Window, IDisposable
     SizeConstraints = new WindowSizeConstraints
     {
       MinimumSize = new Vector2(minWidth ?? totalWidth, 0),
-      MaximumSize = new Vector2(totalWidth, 400),
+      MaximumSize = new Vector2(totalWidth, 500),
     };
   }
 
@@ -134,18 +159,23 @@ public class ConfigWindow : Window, IDisposable
     DrawHorizontallyCenteredText(Loc.Get(Loc.Phrase.PleaseLogIn));
   }
 
-  private void DrawTitleListRequest()
+  private void DrawPvPPrompt()
   {
-    DrawHorizontallyCenteredText(Loc.Get(Loc.Phrase.RequestTitleListDescription));
-    DrawHorizontallyCenteredButton(
-      Loc.Get(Loc.Phrase.RequestTitleList),
-      TitleUtils.TitleList.DataPending,
-      () =>
-      {
-        Logger.Debug("User requested the title list");
-        TitleUtils.TitleList.RequestTitleList();
-      }
-    );
+    string text = Loc.Get(Loc.Phrase.SetTitleToX).Replace("%s", TitleUtils.GetTitleName(_pvpPromptTitleId));
+    float textLength = ImGui.CalcTextSize(text).X;
+    ImGui.TextUnformatted(text);
+
+    if (ImGui.Button(Loc.Get(Loc.Phrase.Yes), new Vector2(textLength / 2, 0)))
+    {
+      TitleUtils.UpdateTitle();
+      ClosePvPPrompt();
+    }
+    
+    ImGui.SameLine();
+    if (ImGui.Button(Loc.Get(Loc.Phrase.No), new Vector2(textLength / 2, 0)))
+    {
+      ClosePvPPrompt();
+    };
   }
 
   private bool DrawJobSearch()
@@ -179,6 +209,15 @@ public class ConfigWindow : Window, IDisposable
     using var tabItem = ImRaii.TabItem($"{Loc.Get(Loc.Phrase.Options)}###Options");
     if (!tabItem.Success) return;
 
+    CharacterConfig characterConfig = Configuration.GetCharacterConfig();
+   
+    uint infoIconId = 60407;
+    if (!Plugin.TextureProvider.TryGetFromGameIcon(new GameIconLookup(infoIconId), out var infoIcon))
+    {
+      Logger.Error($"Unable to retrieve icon for id: {infoIconId}. Not drawing options tab.");
+      return;
+    }
+
     ImGui.TextUnformatted(Loc.Get(Loc.Phrase.Language));
 
     ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
@@ -195,12 +234,6 @@ public class ConfigWindow : Window, IDisposable
     ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 5);
     ImGui.TextUnformatted(Loc.Get(Loc.Phrase.ClassMode));
     ImGui.SameLine();
-    uint iconId = 60407;
-    if (!Plugin.TextureProvider.TryGetFromGameIcon(new GameIconLookup(iconId), out var infoIcon))
-    {
-      Logger.Error($"Unable to retrieve icon for id: {iconId}. Not drawing options tab.");
-      return;
-    }
     ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 5);
     ImGui.SetCursorPosX(ImGui.GetCursorPosX() - 10);
     ImGui.Image(infoIcon!.GetWrapOrEmpty().ImGuiHandle, new Vector2(28 * ImGuiHelpers.GlobalScale));
@@ -208,21 +241,80 @@ public class ConfigWindow : Window, IDisposable
       using (ImRaii.Tooltip())
         ImGui.TextUnformatted(Loc.Get(Loc.Phrase.ClassModeTooltip));
 
-    if (ImGui.RadioButton(Loc.Get(Loc.Phrase.InheritJobTitles), Plugin.Configuration.ClassMode == Configuration.ClassModeOption.InheritJobTitles))
+    if (ImGui.RadioButton(Loc.Get(Loc.Phrase.InheritJobTitles), characterConfig.ClassMode == CharacterConfig.ClassModeOption.InheritJobTitles))
     {
-      Plugin.Configuration.ClassMode = Configuration.ClassModeOption.InheritJobTitles;
-      Plugin.Configuration.Save();
+      characterConfig.ClassMode = CharacterConfig.ClassModeOption.InheritJobTitles;
+      Configuration.SaveCharacterConfig(characterConfig);
       TitleUtils.UpdateTitle();
     }
 
-    if (ImGui.RadioButton(Loc.Get(Loc.Phrase.ShowClasses), Plugin.Configuration.ClassMode == Configuration.ClassModeOption.ShowClasses))
+    if (ImGui.RadioButton(Loc.Get(Loc.Phrase.ShowClasses), characterConfig.ClassMode == CharacterConfig.ClassModeOption.ShowClasses))
     {
-      Plugin.Configuration.ClassMode = Configuration.ClassModeOption.ShowClasses;
-      Plugin.Configuration.Save();
+      characterConfig.ClassMode = CharacterConfig.ClassModeOption.ShowClasses;
+      Configuration.SaveCharacterConfig(characterConfig);
       TitleUtils.UpdateTitle();
     }
 
+    ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 5);
+    ImGui.TextUnformatted(Loc.Get(Loc.Phrase.PvP));
+    ImGui.SameLine();
+    ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 5);
+    ImGui.SetCursorPosX(ImGui.GetCursorPosX() - 10);
+    ImGui.Image(infoIcon!.GetWrapOrEmpty().ImGuiHandle, new Vector2(28 * ImGuiHelpers.GlobalScale));
+    if (ImGui.IsItemHovered())
+      using (ImRaii.Tooltip())
+        ImGui.TextUnformatted(Loc.Get(Loc.Phrase.PvPTooltip));
+
+    var useGAROTitleInPvP = characterConfig.UseGAROTitleInPvP;
+    if (ImGui.Checkbox(Loc.Get(Loc.Phrase.UseGAROTitleInPvP), ref useGAROTitleInPvP))
+    {
+      characterConfig.UseGAROTitleInPvP = useGAROTitleInPvP;
+      Configuration.SaveCharacterConfig(characterConfig);
+      TitleUtils.UpdateTitle();
+    }
+
+    if (characterConfig.UseGAROTitleInPvP)
+    {
+      var tryUseGAROTitleForCurrentJob = characterConfig.TryUseGAROTitleForCurrentJob;
+      if (ImGui.Checkbox(Loc.Get(Loc.Phrase.TryUseGAROTitleForCurrentJob), ref tryUseGAROTitleForCurrentJob))
+      {
+        characterConfig.TryUseGAROTitleForCurrentJob = tryUseGAROTitleForCurrentJob;
+        Configuration.SaveCharacterConfig(characterConfig);
+        TitleUtils.UpdateTitle();
+      }
+
+      ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
+      var selectedTitleName = TitleUtils.GetTitleName(characterConfig.GAROTitleId);
+      using (var dropdown = ImRaii.Combo("###GAROTitleSelect", selectedTitleName))
+      {
+        if (dropdown)
+        {
+          if (ImGui.Selectable("None", characterConfig.GAROTitleId == TitleUtils.TitleIds.None))
+          {
+            characterConfig.GAROTitleId = TitleUtils.TitleIds.None;
+            Configuration.SaveCharacterConfig(characterConfig);
+            TitleUtils.UpdateTitle();
+          }
+          foreach (var title in Plugin.DataManager.Excel.GetSheet<Title>(Loc.Language).Where(t => t.RowId != 0 && TitleUtils.IsTitleUnlocked(t.RowId)))
+          {
+            if (TitleUtils.IsGaroTitle(title.RowId))
+            {
+              if (ImGui.Selectable(TitleUtils.GetTitleName(title), characterConfig.GAROTitleId == title.RowId))
+              {
+                characterConfig.GAROTitleId = (int)title.RowId;
+                Configuration.SaveCharacterConfig(characterConfig);
+                TitleUtils.UpdateTitle();
+              }
+            }
+          }
+        }
+      }
+    }
+
+    ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 5);
+    ImGui.TextUnformatted(Loc.Get(Loc.Phrase.Other));
     ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 10);
+
     var printTitleChangesInChat = Plugin.Configuration.PrintTitleChangesInChat;
     if (ImGui.Checkbox(Loc.Get(Loc.Phrase.PrintTitleChangesInChat), ref printTitleChangesInChat))
     {
@@ -274,7 +366,7 @@ public class ConfigWindow : Window, IDisposable
     var characterConfig = Configuration.GetCharacterConfig();
     foreach (var jobId in JobUtils.OrderedJobs.Select(job => (uint)job))
     {
-      if (JobUtils.IsClass(jobId) && Plugin.Configuration.ClassMode != Configuration.ClassModeOption.ShowClasses)
+      if (JobUtils.IsClass(jobId) && characterConfig.ClassMode != CharacterConfig.ClassModeOption.ShowClasses)
         continue;
 
       if (!Plugin.DataManager.Excel.GetSheet<ClassJob>(Loc.Language).TryGetRow(jobId, out var jobRow))
