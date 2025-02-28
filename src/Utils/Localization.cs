@@ -42,6 +42,8 @@ public class Loc
     Yes,
     No,
     PvPTooltip,
+    SelectTitle,
+    NoGAROTitlesUnlocked,
   }
 
   private static readonly Dictionary<Language, Dictionary<Phrase, string>> Translations = new()
@@ -80,6 +82,8 @@ public class Loc
         { Phrase.Yes, "Yes"},
         { Phrase.No, "No"},
         { Phrase.PvPTooltip, "Prompts you to change your Title upon entering a PvP duty.\nUseful for GARO achievements."},
+        { Phrase.SelectTitle, "Select Title"},
+        { Phrase.NoGAROTitlesUnlocked, "No GARO Titles Unlocked"},
       }
     },
     { Language.German, new Dictionary<Phrase, string>
@@ -116,6 +120,8 @@ public class Loc
         { Phrase.Yes, "Ja"},
         { Phrase.No, "Nein"},
         { Phrase.PvPTooltip, "Fordert dich beim Betreten einer PvP duty auf, deinen Titel zu ändern.\nNützlich für GARO-Erfolge."},
+        { Phrase.SelectTitle, "Titel auswählen"},
+        { Phrase.NoGAROTitlesUnlocked, "Keine GARO Titel verfügbar"},
       }
     },
   };

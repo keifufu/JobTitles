@@ -42,7 +42,7 @@ public static class Logger
     bool ShouldLog(LogType type, string message)
     {
       if (type == LogType.Debug) return true;
-      
+
       if (_lastLogTime.TryGetValue(message, out var lastLogTime))
       {
         if (DateTime.UtcNow - lastLogTime < _throttleInterval)

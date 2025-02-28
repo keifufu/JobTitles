@@ -170,12 +170,12 @@ public class ConfigWindow : Window, IDisposable
       TitleUtils.UpdateTitle();
       ClosePvPPrompt();
     }
-    
+
     ImGui.SameLine();
     if (ImGui.Button(Loc.Get(Loc.Phrase.No), new Vector2(textLength / 2, 0)))
     {
       ClosePvPPrompt();
-    };
+    }
   }
 
   private bool DrawJobSearch()
@@ -183,9 +183,10 @@ public class ConfigWindow : Window, IDisposable
     ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
     ImGui.InputTextWithHint("###JobSearch", Loc.Get(Loc.Phrase.Search), ref _jobSearchTerm, 256, ImGuiInputTextFlags.AutoSelectAll);
 
-    if (_jobSearchTerm.Length > 0)
+    string jobSearchTermTrimmed = _jobSearchTerm.Trim();
+    if (jobSearchTermTrimmed.Length > 0)
     {
-      Func<ClassJob, bool> shouldRenderJobRow = jobRow => _jobSearchTerm.Length == 0 || jobRow.Name.ExtractText().IndexOf(_jobSearchTerm, StringComparison.OrdinalIgnoreCase) >= 0;
+      Func<ClassJob, bool> shouldRenderJobRow = jobRow => jobSearchTermTrimmed.Length == 0 || jobRow.Name.ExtractText().IndexOf(jobSearchTermTrimmed, StringComparison.OrdinalIgnoreCase) >= 0;
       if (DrawJobTitleSelectRows(shouldRenderJobRow) == 0)
       {
         DrawHorizontallyCenteredText(Loc.Get(Loc.Phrase.NoResults));
@@ -210,7 +211,7 @@ public class ConfigWindow : Window, IDisposable
     if (!tabItem.Success) return;
 
     CharacterConfig characterConfig = Configuration.GetCharacterConfig();
-   
+
     uint infoIconId = 60407;
     if (!Plugin.TextureProvider.TryGetFromGameIcon(new GameIconLookup(infoIconId), out var infoIcon))
     {
@@ -284,28 +285,28 @@ public class ConfigWindow : Window, IDisposable
       }
 
       ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
-      var selectedTitleName = TitleUtils.GetTitleName(characterConfig.GAROTitleId);
+      var selectedTitleName = characterConfig.GAROTitleId == TitleUtils.TitleIds.DoNotOverride
+        ? Loc.Get(Loc.Phrase.SelectTitle)
+        : TitleUtils.GetTitleName(characterConfig.GAROTitleId);
       using (var dropdown = ImRaii.Combo("###GAROTitleSelect", selectedTitleName))
       {
         if (dropdown)
         {
-          if (ImGui.Selectable("None", characterConfig.GAROTitleId == TitleUtils.TitleIds.None))
+          int titles = 0;
+          foreach (var title in Plugin.DataManager.Excel.GetSheet<Title>(Loc.Language).Where(t => TitleUtils.IsGaroTitle(t.RowId) && TitleUtils.IsTitleUnlocked(t.RowId)))
           {
-            characterConfig.GAROTitleId = TitleUtils.TitleIds.None;
-            Configuration.SaveCharacterConfig(characterConfig);
-            TitleUtils.UpdateTitle();
-          }
-          foreach (var title in Plugin.DataManager.Excel.GetSheet<Title>(Loc.Language).Where(t => t.RowId != 0 && TitleUtils.IsTitleUnlocked(t.RowId)))
-          {
-            if (TitleUtils.IsGaroTitle(title.RowId))
+            titles++;
+            if (ImGui.Selectable(TitleUtils.GetTitleName(title), characterConfig.GAROTitleId == title.RowId))
             {
-              if (ImGui.Selectable(TitleUtils.GetTitleName(title), characterConfig.GAROTitleId == title.RowId))
-              {
-                characterConfig.GAROTitleId = (int)title.RowId;
-                Configuration.SaveCharacterConfig(characterConfig);
-                TitleUtils.UpdateTitle();
-              }
+              characterConfig.GAROTitleId = (int)title.RowId;
+              Configuration.SaveCharacterConfig(characterConfig);
+              TitleUtils.UpdateTitle();
             }
+          }
+
+          if (titles == 0)
+          {
+            ImGui.TextUnformatted(Loc.Get(Loc.Phrase.NoGAROTitlesUnlocked));
           }
         }
       }
@@ -449,7 +450,8 @@ public class ConfigWindow : Window, IDisposable
 
   private void DrawTitleSelectable(string option, int titleId, uint jobId, int selectedTitleId)
   {
-    if (_titleSearchTerm.Length == 0 || option.IndexOf(_titleSearchTerm, StringComparison.OrdinalIgnoreCase) >= 0)
+    string titleSearchTermTrimmed = _titleSearchTerm.Trim();
+    if (titleSearchTermTrimmed.Length == 0 || option.IndexOf(titleSearchTermTrimmed, StringComparison.OrdinalIgnoreCase) >= 0)
     {
       if (ImGui.Selectable(option, selectedTitleId == titleId))
       {

@@ -10,11 +10,11 @@ namespace JobTitles;
 public class CharacterConfig
 {
   public Dictionary<uint, int> JobTitleMappings { get; set; } = new();
-  public List<byte> CachedTitlesUnlockBitmask { get; set;} = new List<byte>();
+  public List<byte> CachedTitlesUnlockBitmask { get; set; } = new List<byte>();
   public ClassModeOption ClassMode { get; set; } = ClassModeOption.InheritJobTitles;
   public bool UseGAROTitleInPvP { get; set; } = false;
   public bool TryUseGAROTitleForCurrentJob { get; set; } = false;
-  public int GAROTitleId { get; set; } = TitleUtils.TitleIds.None;
+  public int GAROTitleId { get; set; } = TitleUtils.TitleIds.DoNotOverride;
 
   public enum ClassModeOption
   {
@@ -26,7 +26,7 @@ public class CharacterConfig
 [Serializable]
 public class Configuration : IPluginConfiguration
 {
-  public int Version { get; set; } = 0;
+  public int Version { get; set; } = 1;
   public Dictionary<ulong, CharacterConfig> CharacterConfigs { get; set; } = new();
   public Language Language { get; set; } = Language.None;
   public bool PrintTitleChangesInChat { get; set; } = false;
@@ -37,6 +37,22 @@ public class Configuration : IPluginConfiguration
 
   public static Configuration Load() =>
     Plugin.PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
+
+  public void Migrate()
+  {
+    if (Version == 0)
+    {
+      foreach (var characterConfig in CharacterConfigs.Values)
+      {
+        if (characterConfig.GAROTitleId == TitleUtils.TitleIds.None)
+        {
+          characterConfig.GAROTitleId = TitleUtils.TitleIds.DoNotOverride;
+        }
+      }
+      Version = 1;
+      Save();
+    }
+  }
 
   public static CharacterConfig GetCharacterConfig()
   {
@@ -63,7 +79,7 @@ public class Configuration : IPluginConfiguration
     ulong localContentId = Plugin.ClientState.LocalContentId;
     if (localContentId == 0)
     {
-      Logger.Debug("Function was called before character was logged in, returning temporary config.");
+      Logger.Debug("Function was called before character was logged in. Not saving config.");
       return;
     }
 

@@ -26,7 +26,7 @@ class TitleUtils
   public static void RequestTitleList()
   {
     if (TitleList.DataPending || TitleList.DataReceived) return;
-    
+
     Logger.Debug("Requesting title list");
     TitleList.RequestTitleList();
     shouldCache = true;
@@ -43,6 +43,21 @@ class TitleUtils
       Logger.Debug($"Cached title list: {string.Join(",", characterConfig.CachedTitlesUnlockBitmask)}");
       shouldCache = false;
     }
+  }
+
+  public static void AddTitleIdToCache(uint titleId)
+  {
+    Logger.Debug($"Adding titleId to cached titles: {titleId}");
+
+    CharacterConfig characterConfig = Configuration.GetCharacterConfig();
+    int byteIndex = (int)(titleId / 8);
+    while (characterConfig.CachedTitlesUnlockBitmask.Count <= byteIndex)
+    {
+      characterConfig.CachedTitlesUnlockBitmask.Add(0);
+    }
+    int bitIndex = (int)(titleId % 8);
+    characterConfig.CachedTitlesUnlockBitmask[byteIndex] |= (byte)(1 << bitIndex);
+    Configuration.SaveCharacterConfig(characterConfig);
   }
 
   public static void SaveTitle(uint jobId, int titleId)
@@ -99,6 +114,14 @@ class TitleUtils
       return;
     }
 
+    // The plugin prevents users from selecting a title they haven't unlocked.
+    // However, since we now cache the TitleList, we can verify if the user has unlocked it anyway for consistency.
+    if (!IsTitleUnlocked((uint)titleId))
+    {
+      Logger.Error($"Attempted to set a locked title: {titleId}({(ushort)titleId}) \"{GetTitleName(titleId)}\"");
+      return;
+    }
+
     Logger.Debug($"Sending title id update: {titleId}({(ushort)titleId}) \"{GetTitleName(titleId)}\"");
 
     if (Plugin.Configuration.PrintTitleChangesInChat)
@@ -123,6 +146,12 @@ class TitleUtils
 
   public static bool IsTitleUnlocked(uint titleId)
   {
+    if (titleId > ushort.MaxValue)
+    {
+      Logger.Error($"Provided value was too large: {titleId}");
+      return false;
+    }
+
     if (!TitleList.DataReceived)
     {
       Logger.Debug("TitleList is not received. Using cached list.");
@@ -136,12 +165,6 @@ class TitleUtils
       int bitIndex = (int)(titleId % 8);
       byte byteValue = characterConfig.CachedTitlesUnlockBitmask[byteIndex];
       return (byteValue & (1 << bitIndex)) != 0;
-    }
-
-    if (titleId > ushort.MaxValue)
-    {
-      Logger.Error($"Provided value was too large: {titleId}");
-      return false;
     }
 
     return TitleList.IsTitleUnlocked((ushort)titleId);
@@ -221,7 +244,7 @@ class TitleUtils
     CharacterConfig characterConfig = Configuration.GetCharacterConfig();
     if (!characterConfig.TryUseGAROTitleForCurrentJob)
       return characterConfig.GAROTitleId;
-    
+
     uint jobId = GetCurrentJob();
     int pvpTitleId = Enum.IsDefined(typeof(JobUtils.Job), jobId)
       ? JobGAROTitleMap.GetValueOrDefault((JobUtils.Job)jobId, characterConfig.GAROTitleId)
@@ -235,7 +258,7 @@ class TitleUtils
   public static void OnEnterPvP()
   {
     if (!Plugin.ClientState.IsPvPExcludingDen) return;
-    
+
     CharacterConfig characterConfig = Configuration.GetCharacterConfig();
     if (!characterConfig.UseGAROTitleInPvP) return;
 

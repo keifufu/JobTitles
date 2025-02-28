@@ -11,6 +11,7 @@ namespace JobTitles;
 public sealed class Plugin : IDalamudPlugin
 {
   [PluginService] internal static IDalamudPluginInterface PluginInterface { get; private set; } = null!;
+  [PluginService] internal static IGameInteropProvider InteropProvider { get; private set; } = null!;
   [PluginService] internal static ITextureProvider TextureProvider { get; private set; } = null!;
   [PluginService] internal static ICommandManager CommandManager { get; private set; } = null!;
   [PluginService] internal static IClientState ClientState { get; private set; } = null!;
@@ -22,10 +23,12 @@ public sealed class Plugin : IDalamudPlugin
   public readonly WindowSystem WindowSystem = new("JobTitles");
   public static ConfigWindow ConfigWindow { get; set; } = new ConfigWindow();
   private const string CommandName = "/jobtitles";
+  private Hooks Hooks { get; init; }
 
   public Plugin()
   {
     Configuration = Configuration.Load();
+    Configuration.Migrate();
     Loc.SetLanguage(Configuration.Language);
     WindowSystem.AddWindow(ConfigWindow);
     CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
@@ -37,6 +40,7 @@ public sealed class Plugin : IDalamudPlugin
     PluginInterface.UiBuilder.OpenMainUi += ToggleConfigUI;
     ClientState.ClassJobChanged += JobChanged;
     ClientState.EnterPvP += TitleUtils.OnEnterPvP;
+    Hooks = new Hooks();
   }
 
   public void Dispose()
@@ -45,6 +49,7 @@ public sealed class Plugin : IDalamudPlugin
     CommandManager.RemoveHandler(CommandName);
     ClientState.ClassJobChanged -= JobChanged;
     ClientState.EnterPvP -= TitleUtils.OnEnterPvP;
+    Hooks?.Dispose();
   }
 
   private void DrawUI() => WindowSystem.Draw();
