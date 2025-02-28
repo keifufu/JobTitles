@@ -77,7 +77,7 @@ public class Loc
         { Phrase.Other, "Other" },
         { Phrase.PvP, "PvP" },
         { Phrase.UseGAROTitleInPvP, "Use GARO Title in PvP" },
-        { Phrase.TryUseGAROTitleForCurrentJob, "Use GARO Title for current Job if possible" },
+        { Phrase.TryUseGAROTitleForCurrentJob, "Use GARO Title for current Job when possible" },
         { Phrase.SetTitleToX, "Set title to '%s' ?"},
         { Phrase.Yes, "Yes"},
         { Phrase.No, "No"},

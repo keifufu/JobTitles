@@ -114,7 +114,7 @@ class TitleUtils
       return;
     }
 
-    // The plugin prevents users from selecting a title they haven't unlocked.
+    // We prevent users from selecting a title they haven't unlocked.
     // However, since we now cache the TitleList, we can verify if the user has unlocked it anyway for consistency.
     if (!IsTitleUnlocked((uint)titleId))
     {
