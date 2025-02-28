@@ -13,7 +13,7 @@ class TitleUtils
 {
   private static unsafe TitleController TitleController => UIState.Instance()->TitleController;
   private static unsafe TitleList TitleList => UIState.Instance()->TitleList;
-  private static bool shouldCache = false;
+  private static bool shouldCache = true;
 
   public class TitleIds
   {
