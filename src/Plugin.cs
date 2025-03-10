@@ -1,59 +1,82 @@
-using Dalamud.Game.Command;
-using Dalamud.Interface.Windowing;
-using Dalamud.IoC;
-using Dalamud.Plugin;
-using Dalamud.Plugin.Services;
-using JobTitles.Utils;
-using JobTitles.Windows;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace JobTitles;
 
 public sealed class Plugin : IDalamudPlugin
 {
-  [PluginService] internal static IDalamudPluginInterface PluginInterface { get; private set; } = null!;
-  [PluginService] internal static IGameInteropProvider InteropProvider { get; private set; } = null!;
-  [PluginService] internal static ITextureProvider TextureProvider { get; private set; } = null!;
-  [PluginService] internal static ICommandManager CommandManager { get; private set; } = null!;
-  [PluginService] internal static IClientState ClientState { get; private set; } = null!;
-  [PluginService] internal static IDataManager DataManager { get; private set; } = null!;
-  [PluginService] internal static IPluginLog Log { get; private set; } = null!;
-  [PluginService] internal static IChatGui Chat { get; private set; } = null!;
+  private readonly IHost _host;
 
-  public static Configuration Configuration { get; set; } = new Configuration();
-  public readonly WindowSystem WindowSystem = new("JobTitles");
-  public static ConfigWindow ConfigWindow { get; set; } = new ConfigWindow();
-  private const string CommandName = "/jobtitles";
-  private Hooks Hooks { get; init; }
-
-  public Plugin()
+  public Plugin(
+    IDalamudPluginInterface pluginInterface,
+    IChatGui chatGui,
+    IClientState clientState,
+    ICommandManager commandManager,
+    IDataManager dataManager,
+    IFramework framework,
+    IGameInteropProvider interopProvider,
+    IPluginLog pluginLog,
+    ITextureProvider textureProvider,
+    IToastGui toastGui)
   {
-    Configuration = Configuration.Load();
-    Configuration.Migrate();
-    Loc.SetLanguage(Configuration.Language);
-    WindowSystem.AddWindow(ConfigWindow);
-    CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
-    {
-      HelpMessage = "Open the JobTitles Configuration Window."
-    });
-    PluginInterface.UiBuilder.Draw += DrawUI;
-    PluginInterface.UiBuilder.OpenConfigUi += ToggleConfigUI;
-    PluginInterface.UiBuilder.OpenMainUi += ToggleConfigUI;
-    ClientState.ClassJobChanged += JobChanged;
-    ClientState.EnterPvP += TitleUtils.OnEnterPvP;
-    Hooks = new Hooks();
+    _host = new HostBuilder()
+      .UseContentRoot(pluginInterface.ConfigDirectory.FullName)
+      .ConfigureLogging(lb =>
+      {
+        lb.ClearProviders();
+        lb.SetMinimumLevel(LogLevel.Trace);
+      })
+      .ConfigureServices(collection =>
+      {
+        collection.AddSingleton(pluginInterface);
+        collection.AddSingleton(chatGui);
+        collection.AddSingleton(clientState);
+        collection.AddSingleton(commandManager);
+        collection.AddSingleton(dataManager);
+        collection.AddSingleton(framework);
+        collection.AddSingleton(interopProvider);
+        collection.AddSingleton(pluginLog);
+        collection.AddSingleton(textureProvider);
+        collection.AddSingleton(toastGui);
+
+        collection.AddSingleton<WindowService>();
+        collection.AddSingleton<CommandService>();
+        collection.AddSingleton<ConfigWindow>();
+        collection.AddSingleton<PromptWindow>();
+
+        collection.AddSingleton<Loc>();
+        collection.AddSingleton<Logger>();
+        collection.AddSingleton<JobService>();
+        collection.AddSingleton<TitleService>();
+        collection.AddSingleton<EventService>();
+        collection.AddSingleton<InteropService>();
+
+        collection.AddSingleton(InitializeConfiguration);
+        collection.AddSingleton(new WindowSystem("JobTitles"));
+
+        collection.AddHostedService<WindowService>();
+        collection.AddHostedService<CommandService>();
+        collection.AddHostedService<EventService>();
+        collection.AddHostedService<InteropService>();
+      }).Build();
+
+    _host.StartAsync();
+  }
+
+  private Configuration InitializeConfiguration(IServiceProvider s)
+  {
+    Logger logger = s.GetRequiredService<Logger>();
+    IDalamudPluginInterface pluginInterface = s.GetRequiredService<IDalamudPluginInterface>();
+    IClientState clientState = s.GetRequiredService<IClientState>();
+    Configuration configuration = pluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
+    configuration.Initialize(logger, pluginInterface, clientState);
+    return configuration;
   }
 
   public void Dispose()
   {
-    WindowSystem.RemoveAllWindows();
-    CommandManager.RemoveHandler(CommandName);
-    ClientState.ClassJobChanged -= JobChanged;
-    ClientState.EnterPvP -= TitleUtils.OnEnterPvP;
-    Hooks?.Dispose();
+    _host.StopAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+    _host.Dispose();
   }
-
-  private void DrawUI() => WindowSystem.Draw();
-  private void ToggleConfigUI() => ConfigWindow.Toggle();
-  private void OnCommand(string command, string args) => ToggleConfigUI();
-  private void JobChanged(uint jobId) => TitleUtils.SetTitle(jobId);
 }

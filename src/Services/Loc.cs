@@ -1,12 +1,31 @@
-using System.Collections.Generic;
 using Dalamud.Game;
-using Lumina.Data;
 
-namespace JobTitles.Utils;
+namespace JobTitles;
 
 public class Loc
 {
-  public static Language Language = GetClientLanguage();
+  private readonly Configuration Configuration;
+  private readonly IClientState ClientState;
+
+  public Loc(Configuration configuration, IClientState clientState)
+  {
+    Configuration = configuration;
+    ClientState = clientState;
+  }
+
+  public Language Language
+  {
+    get => Configuration.Language == Language.None ? GetClientLanguage() : Configuration.Language;
+  }
+
+  private Language GetClientLanguage() => ClientState.ClientLanguage switch
+  {
+    ClientLanguage.Japanese => Language.Japanese,
+    ClientLanguage.English => Language.English,
+    ClientLanguage.German => Language.German,
+    ClientLanguage.French => Language.French,
+    _ => Language.English,
+  };
 
   public enum Phrase
   {
@@ -44,14 +63,18 @@ public class Loc
     PvPTooltip,
     SelectTitle,
     NoGAROTitlesUnlocked,
+    ReappliedTitle,
+    FailedToReapplyTitle,
+    AvailableComands,
+    InvalidCommand
   }
 
-  private static readonly Dictionary<Language, Dictionary<Phrase, string>> Translations = new()
+  private readonly Dictionary<Language, Dictionary<Phrase, string>> Translations = new()
   {
     { Language.English, new Dictionary<Phrase, string>
       {
         { Phrase.PleaseLogIn, "Please log in to start configuring JobTitles." },
-        { Phrase.JobNameTooltip, "Configure title used for %s.\nDo not override - does not update title when you switch to this job\nNone - Clears your title" },
+        { Phrase.JobNameTooltip, "Configure title used for {0}.\nDo not override - does not update title when you switch to this job\nNone - Clears your title" },
         { Phrase.None, "None" },
         { Phrase.DoNotOverride, "Do not override" },
         { Phrase.Search, "Search" },
@@ -78,18 +101,22 @@ public class Loc
         { Phrase.PvP, "PvP" },
         { Phrase.UseGAROTitleInPvP, "Use GARO Title in PvP" },
         { Phrase.TryUseGAROTitleForCurrentJob, "Use GARO Title for current Job when possible" },
-        { Phrase.SetTitleToX, "Set title to '%s' ?"},
+        { Phrase.SetTitleToX, "Set title to '{0}' ?"},
         { Phrase.Yes, "Yes"},
         { Phrase.No, "No"},
         { Phrase.PvPTooltip, "Prompts you to change your Title upon entering a PvP duty.\nUseful for GARO achievements."},
         { Phrase.SelectTitle, "Select Title"},
         { Phrase.NoGAROTitlesUnlocked, "No GARO Titles Unlocked"},
+        { Phrase.ReappliedTitle, "Reapplied Title: "},
+        { Phrase.FailedToReapplyTitle, "Failed to reapply title; see /xllog for more."},
+        { Phrase.AvailableComands, "Available commands:"},
+        { Phrase.InvalidCommand, "Invalid command:"},
       }
     },
     { Language.German, new Dictionary<Phrase, string>
       {
         { Phrase.PleaseLogIn, "Bitte logge dich ein um JobTitles zu konfigurieren." },
-        { Phrase.JobNameTooltip, "Konfiguriere den Titel für %s.\nNicht ersetzen - verändert den Titel nicht wenn du die Klasse wechselst\nKeinen Titel - Entfernt deinen Titel" },
+        { Phrase.JobNameTooltip, "Konfiguriere den Titel für {0}.\nNicht ersetzen - verändert den Titel nicht wenn du die Klasse wechselst\nKeinen Titel - Entfernt deinen Titel" },
         { Phrase.None, "Keinen Titel" },
         { Phrase.DoNotOverride, "Nicht ersetzen" },
         { Phrase.Search, "Suchen" },
@@ -116,31 +143,21 @@ public class Loc
         { Phrase.PvP, "PvP" },
         { Phrase.UseGAROTitleInPvP, "GARO Titel in PvP benutzen" },
         { Phrase.TryUseGAROTitleForCurrentJob, "GARO Title für den aktuellen Job benutzen wenn möglich" },
-        { Phrase.SetTitleToX, "Titel zu '%s' ändern?"},
+        { Phrase.SetTitleToX, "Titel zu '{0}' ändern?"},
         { Phrase.Yes, "Ja"},
         { Phrase.No, "Nein"},
         { Phrase.PvPTooltip, "Fordert dich beim Betreten einer PvP duty auf, deinen Titel zu ändern.\nNützlich für GARO-Erfolge."},
         { Phrase.SelectTitle, "Titel auswählen"},
         { Phrase.NoGAROTitlesUnlocked, "Keine GARO Titel verfügbar"},
+        { Phrase.ReappliedTitle, "Titel erneut gesetzt: "},
+        { Phrase.FailedToReapplyTitle, "Titel konnte nicht erneut gesetzt werden. Weitere Informationen unter /xllog."},
+        { Phrase.AvailableComands, "Verfügbare Befehle:"},
+        { Phrase.InvalidCommand, "Ungültiger Befehl:"},
       }
     },
   };
 
-  public static Language GetClientLanguage() => Plugin.ClientState.ClientLanguage switch
-  {
-    ClientLanguage.Japanese => Language.Japanese,
-    ClientLanguage.English => Language.English,
-    ClientLanguage.German => Language.German,
-    ClientLanguage.French => Language.French,
-    _ => Language.English,
-  };
-
-  public static void SetLanguage(Language language) =>
-    Language = (language == Language.None)
-      ? GetClientLanguage()
-      : language;
-
-  public static string GetLanguageName(Language language) => language switch
+  public string GetLanguageName(Language language) => language switch
   {
     Language.None => Get(Phrase.ClientLanguage),
     Language.English => Get(Phrase.English),
@@ -148,16 +165,15 @@ public class Loc
     _ => Get(Phrase.ClientLanguage)
   };
 
-  public static string Get(Phrase phrase) =>
+  public string Get(Phrase phrase) =>
     Translations.TryGetValue(Language, out var translations)
     && translations.TryGetValue(phrase, out var translation)
       ? translation
       : GetFallbackTranslation(phrase);
 
-  public static string GetFallbackTranslation(Phrase phrase) =>
+  public string GetFallbackTranslation(Phrase phrase) =>
     Translations.TryGetValue(Language.English, out var defaultTranslations)
     && defaultTranslations.TryGetValue(phrase, out var defaultTranslation)
       ? defaultTranslation
       : phrase.ToString();
 }
-
