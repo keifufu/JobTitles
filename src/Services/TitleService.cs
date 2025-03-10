@@ -204,8 +204,7 @@ public class TitleService
     TitleId titleId = TitleIds.DoNotOverride;
     CharacterConfig characterConfig = Configuration.GetCharacterConfig();
 
-    // TODO: IsPvPExcludingDen
-    if (ClientState.IsPvP && characterConfig.UseGAROTitleInPvP)
+    if (ClientState.IsPvPExcludingDen && characterConfig.UseGAROTitleInPvP)
     {
       titleId = GetPvPTitleId(currentJob);
     }

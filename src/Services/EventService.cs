@@ -66,8 +66,7 @@ public class EventService : IHostedService
 
   private void OnEnterPvP()
   {
-    // TODO: IsPvPExcludingDen
-    if (!ClientState.IsPvP) return;
+    if (!ClientState.IsPvPExcludingDen) return;
 
     CharacterConfig characterConfig = Configuration.GetCharacterConfig();
     if (!characterConfig.UseGAROTitleInPvP) return;
