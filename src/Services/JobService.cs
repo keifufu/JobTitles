@@ -33,13 +33,14 @@ public class JobService
   private static readonly Dictionary<Job, Job> ClassJobMap = new()
   {
     { Job.GLD, Job.PLD },
-    { Job.MRD, Job.WAR },
     { Job.PUG, Job.MNK },
+    { Job.MRD, Job.WAR },
     { Job.LNC, Job.DRG },
-    { Job.ROG, Job.NIN },
     { Job.ARC, Job.BRD },
+    { Job.CNJ, Job.WHM },
     { Job.THM, Job.BLM },
     { Job.ACN, Job.SMN },
+    { Job.ROG, Job.NIN },
   };
 
   public IEnumerable<Job> AllJobs => Tanks.Concat(Healers).Concat(Melee).Concat(Ranged).Concat(Crafters).Concat(Gatherers);

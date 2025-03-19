@@ -123,6 +123,7 @@ public static class ConfigurationMigrator
   private static void MigrateV1ToV2(Configuration configuration, Logger logger)
   {
     // Migrated from using int as titleId to using TitleId (global alias for ushort)
+    // and using JobService.Job as the key in JobTitleMappings instead of uint
     logger.Debug($"Migrating configuration using {nameof(MigrateV1ToV2)}");
 
     foreach (CharacterConfig characterConfig in configuration.CharacterConfigs.Values)
