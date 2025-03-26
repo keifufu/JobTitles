@@ -116,6 +116,8 @@ public class TitleService
 
   public bool IsTitleUnlocked(TitleId titleId)
   {
+    if (titleId == TitleIds.None) return true;
+
     if (!TitleList.DataReceived)
     {
       Logger.Debug("TitleList is not received. Using cached list.");

@@ -413,7 +413,7 @@ public class ConfigWindow : Window, IDisposable
     DrawTitleSelectable(Loc.Get(Loc.Phrase.DoNotOverride), TitleService.TitleIds.DoNotOverride, job, selectedTitleId);
     DrawTitleSelectable(Loc.Get(Loc.Phrase.None), TitleService.TitleIds.None, job, selectedTitleId);
 
-    foreach (Title title in DataManager.Excel.GetSheet<Title>(Loc.Language).Where(t => TitleService.IsTitleUnlocked(TitleService.ToTitleId(t.RowId))))
+    foreach (Title title in DataManager.Excel.GetSheet<Title>(Loc.Language).Where(t => t.RowId != 0 && TitleService.IsTitleUnlocked(TitleService.ToTitleId(t.RowId))))
     {
       DrawTitleSelectable(TitleService.GetTitleName(title), TitleService.ToTitleId(title.RowId), job, selectedTitleId);
     }
