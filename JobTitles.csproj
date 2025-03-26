@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Project Sdk="DalAmUD.neT.SdK/12.0.2">
+<Project Sdk="Dalamud.NET.Sdk/12.0.2">
   <PropertyGroup>
     <Version>0.2.0.2</Version>
     <Description>Changes your title based on the current job, with per-character settings.</Description>
