@@ -125,7 +125,7 @@ public class ConfigWindow : Window, IDisposable
     float textWidth = ImGui.CalcTextSize(text).X;
     float textX = (ImGui.GetContentRegionAvail().X - textWidth) * 0.5f;
     ImGui.SetCursorPosX(ImGui.GetCursorPosX() + textX);
-    ImGui.TextUnformatted(text);
+    ImGui.Text(text);
   }
 
   private void DrawHorizontallyCenteredButton(string text, bool disabledCondition, System.Action onClick)
@@ -152,7 +152,7 @@ public class ConfigWindow : Window, IDisposable
     string jobSearchTermTrimmed = _jobSearchTerm.Trim();
     if (jobSearchTermTrimmed.Length > 0)
     {
-      Func<ClassJob, bool> shouldRenderJobRow = jobRow => jobSearchTermTrimmed.Length == 0 || jobRow.Name.ExtractText().IndexOf(jobSearchTermTrimmed, StringComparison.OrdinalIgnoreCase) >= 0;
+      Func<ClassJob, bool> shouldRenderJobRow = jobRow => jobSearchTermTrimmed.Length == 0 || jobRow.Name.ToString().IndexOf(jobSearchTermTrimmed, StringComparison.OrdinalIgnoreCase) >= 0;
       if (DrawJobTitleSelectRows(shouldRenderJobRow) == 0)
       {
         DrawHorizontallyCenteredText(Loc.Get(Loc.Phrase.NoResults));
@@ -185,7 +185,7 @@ public class ConfigWindow : Window, IDisposable
       return;
     }
 
-    ImGui.TextUnformatted(Loc.Get(Loc.Phrase.Language));
+    ImGui.Text(Loc.Get(Loc.Phrase.Language));
 
     ImGui.SetNextItemWidth(ScaledFloat(200));
     using (ImRaii.IEndObject dropdown = ImRaii.Combo("###LanguageSelect", Loc.GetLanguageName(Configuration.Language)))
@@ -199,14 +199,14 @@ public class ConfigWindow : Window, IDisposable
     }
 
     ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 5);
-    ImGui.TextUnformatted(Loc.Get(Loc.Phrase.ClassMode));
+    ImGui.Text(Loc.Get(Loc.Phrase.ClassMode));
     ImGui.SameLine();
     ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 5);
     ImGui.SetCursorPosX(ImGui.GetCursorPosX() - 10);
-    ImGui.Image(infoIcon!.GetWrapOrEmpty().ImGuiHandle, ScaledVector2(28));
+    ImGui.Image(infoIcon!.GetWrapOrEmpty().Handle, ScaledVector2(28));
     if (ImGui.IsItemHovered())
       using (ImRaii.Tooltip())
-        ImGui.TextUnformatted(Loc.Get(Loc.Phrase.ClassModeTooltip));
+        ImGui.Text(Loc.Get(Loc.Phrase.ClassModeTooltip));
 
     if (ImGui.RadioButton(Loc.Get(Loc.Phrase.InheritJobTitles), characterConfig.ClassMode == CharacterConfig.ClassModeOption.InheritJobTitles))
     {
@@ -223,14 +223,14 @@ public class ConfigWindow : Window, IDisposable
     }
 
     ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 5);
-    ImGui.TextUnformatted(Loc.Get(Loc.Phrase.PvP));
+    ImGui.Text(Loc.Get(Loc.Phrase.PvP));
     ImGui.SameLine();
     ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 5);
     ImGui.SetCursorPosX(ImGui.GetCursorPosX() - 10);
-    ImGui.Image(infoIcon!.GetWrapOrEmpty().ImGuiHandle, ScaledVector2(28));
+    ImGui.Image(infoIcon!.GetWrapOrEmpty().Handle, ScaledVector2(28));
     if (ImGui.IsItemHovered())
       using (ImRaii.Tooltip())
-        ImGui.TextUnformatted(Loc.Get(Loc.Phrase.PvPTooltip));
+        ImGui.Text(Loc.Get(Loc.Phrase.PvPTooltip));
 
     bool useGAROTitleInPvP = characterConfig.UseGAROTitleInPvP;
     if (ImGui.Checkbox(Loc.Get(Loc.Phrase.UseGAROTitleInPvP), ref useGAROTitleInPvP))
@@ -272,14 +272,14 @@ public class ConfigWindow : Window, IDisposable
 
           if (titles == 0)
           {
-            ImGui.TextUnformatted(Loc.Get(Loc.Phrase.NoGAROTitlesUnlocked));
+            ImGui.Text(Loc.Get(Loc.Phrase.NoGAROTitlesUnlocked));
           }
         }
       }
     }
 
     ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 5);
-    ImGui.TextUnformatted(Loc.Get(Loc.Phrase.Other));
+    ImGui.Text(Loc.Get(Loc.Phrase.Other));
     ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 10);
 
     bool printTitleChangesInChat = Configuration.PrintTitleChangesInChat;
@@ -315,11 +315,10 @@ public class ConfigWindow : Window, IDisposable
       return;
     }
 
-    IntPtr textureID = gamblerImage.ImGuiHandle;
-    ImGui.Image(gamblerImage.ImGuiHandle, size);
+    ImGui.Image(gamblerImage.Handle, size);
     if (ImGui.IsItemHovered())
       using (ImRaii.Tooltip())
-        ImGui.TextUnformatted("Gambi is the Gambler");
+        ImGui.Text("Gambi is the Gambler");
   }
 
   private void DrawLanguageSelectable(Language language)
@@ -370,13 +369,13 @@ public class ConfigWindow : Window, IDisposable
     string jobName = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(jobRow.Name.ExtractText());
     Vector2 iconSize = ScaledVector2(24);
     float verticalOffset = (iconSize.Y - ImGui.CalcTextSize(jobName).Y) / 2.0f;
-    ImGui.Image(jobIcon.GetWrapOrEmpty().ImGuiHandle, iconSize);
+    ImGui.Image(jobIcon.GetWrapOrEmpty().Handle, iconSize);
     ImGui.SameLine();
     ImGui.SetCursorPosY(ImGui.GetCursorPosY() + verticalOffset);
     ImGui.Text(jobName);
     if (ImGui.IsItemHovered())
       using (ImRaii.Tooltip())
-        ImGui.TextUnformatted(string.Format(Loc.Get(Loc.Phrase.JobNameTooltip), jobName));
+        ImGui.Text(string.Format(Loc.Get(Loc.Phrase.JobNameTooltip), jobName));
     // ImGui.SetCursorPosY(ImGui.GetCursorPosY() - verticalOffset);
 
     // Set size and distance for the dropdown

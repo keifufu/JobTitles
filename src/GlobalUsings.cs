@@ -7,7 +7,7 @@ global using System.Threading.Tasks;
 global using Dalamud.Interface.Windowing;
 global using Dalamud.Plugin;
 global using Dalamud.Plugin.Services;
-global using ImGuiNET;
+global using Dalamud.Bindings.ImGui;
 global using JobTitles.Services;
 global using JobTitles.Windows;
 global using Lumina.Data;

@@ -57,7 +57,7 @@ public class PromptWindow : Window, IDisposable
     string text = string.Format(Loc.Get(Loc.Phrase.SetTitleToX), TitleService.GetTitleName(_promptTitleId));
     float textLength = ImGui.CalcTextSize(text).X;
 
-    ImGui.TextUnformatted(text);
+    ImGui.Text(text);
 
     Vector2 buttonSize = new Vector2(textLength / 2, 0);
     if (ImGui.Button(Loc.Get(Loc.Phrase.Yes), buttonSize))

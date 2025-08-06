@@ -112,7 +112,7 @@ public class TitleService
   public string GetTitleName(Title titleRow) =>
     (ClientState.LocalPlayer?.Customize[(int)CustomizeIndex.Gender] == 1
       ? titleRow.Feminine
-      : titleRow.Masculine).ExtractText();
+      : titleRow.Masculine).ToString();
 
   public bool IsTitleUnlocked(TitleId titleId)
   {
