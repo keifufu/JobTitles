@@ -19,19 +19,19 @@ public class ConfigWindow : Window, IDisposable
   private readonly Configuration Configuration;
   private readonly JobService JobService;
   private readonly TitleService TitleService;
-  private readonly IClientState ClientState;
+  private readonly IObjectTable ObjectTable;
   private readonly IDataManager DataManager;
   private readonly ITextureProvider TextureProvider;
   private readonly IDalamudPluginInterface PluginInterface;
 
-  public ConfigWindow(Loc loc, Logger logger, Configuration configuration, JobService jobService, TitleService titleService, IClientState clientState, IDataManager dataManager, ITextureProvider textureProvider, IDalamudPluginInterface pluginInterface) : base("JobTitles###JobTitles")
+  public ConfigWindow(Loc loc, Logger logger, Configuration configuration, JobService jobService, TitleService titleService, IObjectTable objectTable, IDataManager dataManager, ITextureProvider textureProvider, IDalamudPluginInterface pluginInterface) : base("JobTitles###JobTitles")
   {
     Loc = loc;
     Logger = logger;
     Configuration = configuration;
     JobService = jobService;
     TitleService = titleService;
-    ClientState = clientState;
+    ObjectTable = objectTable;
     DataManager = dataManager;
     TextureProvider = textureProvider;
     PluginInterface = pluginInterface;
@@ -49,7 +49,7 @@ public class ConfigWindow : Window, IDisposable
   {
     UpdateWindowTitle();
 
-    if (ClientState.LocalPlayer == null)
+    if (ObjectTable.LocalPlayer == null)
     {
       UpdateSizeContraints(0);
       DrawLoginPrompt();
@@ -113,7 +113,7 @@ public class ConfigWindow : Window, IDisposable
   {
     string debugFlag = Configuration.Debug ? " (Debug)" : string.Empty;
 
-    IPlayerCharacter? localPlayer = ClientState.LocalPlayer;
+    IPlayerCharacter? localPlayer = ObjectTable.LocalPlayer;
     if (localPlayer == null)
       WindowName = $"Job Titles{debugFlag}###JobTitles";
     else

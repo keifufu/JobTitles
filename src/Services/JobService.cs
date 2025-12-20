@@ -4,11 +4,11 @@ public class JobService
 {
   private Job _lastJob = Job.ADV;
 
-  private readonly IClientState ClientState;
+  private readonly IObjectTable ObjectTable;
 
-  public JobService(IClientState clientState)
+  public JobService(IObjectTable objectTable)
   {
-    ClientState = clientState;
+    ObjectTable = objectTable;
   }
 
   public void OnJobChanged(Job job)
@@ -49,8 +49,8 @@ public class JobService
 
   public Job GetCurrentJob()
   {
-    if (ClientState.LocalPlayer == null) return _lastJob;
-    _lastJob = ToJob(ClientState.LocalPlayer.ClassJob.RowId);
+    if (ObjectTable.LocalPlayer == null) return _lastJob;
+    _lastJob = ToJob(ObjectTable.LocalPlayer.ClassJob.RowId);
     return _lastJob;
   }
 

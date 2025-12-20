@@ -8,8 +8,9 @@ public class EventService : IHostedService
   private readonly TitleService TitleService;
   private readonly PromptWindow PromptWindow;
   private readonly IClientState ClientState;
+  private readonly IObjectTable ObjectTable;
 
-  public EventService(Logger logger, Configuration configuration, JobService jobService, TitleService titleService, PromptWindow promptWindow, IClientState clientState)
+  public EventService(Logger logger, Configuration configuration, JobService jobService, TitleService titleService, PromptWindow promptWindow, IClientState clientState, IObjectTable objectTable)
   {
     Logger = logger;
     Configuration = configuration;
@@ -17,6 +18,7 @@ public class EventService : IHostedService
     TitleService = titleService;
     PromptWindow = promptWindow;
     ClientState = clientState;
+    ObjectTable = objectTable;
   }
 
   public Task StartAsync(CancellationToken cancellationToken)
@@ -50,7 +52,7 @@ public class EventService : IHostedService
   // `OnJobChanged` triggers twice after logging in, before `LocalPlayer` is set.
   private void OnJobChanged(uint jobId)
   {
-    if (ClientState.LocalPlayer == null)
+    if (ObjectTable.LocalPlayer == null)
     {
       Logger.Debug("LocalPlayer is null. Not setting title.");
       return;

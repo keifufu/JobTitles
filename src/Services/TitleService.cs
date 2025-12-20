@@ -27,15 +27,17 @@ public class TitleService
   private readonly Configuration Configuration;
   private readonly JobService JobService;
   private readonly IClientState ClientState;
+  private readonly IObjectTable ObjectTable;
   private readonly IDataManager DataManager;
 
-  public TitleService(Loc loc, Logger logger, Configuration configuration, JobService jobService, IClientState clientState, IDataManager dataManager)
+  public TitleService(Loc loc, Logger logger, Configuration configuration, JobService jobService, IClientState clientState, IObjectTable objectTable, IDataManager dataManager)
   {
     Loc = loc;
     Logger = logger;
     Configuration = configuration;
     JobService = jobService;
     ClientState = clientState;
+    ObjectTable = objectTable;
     DataManager = dataManager;
   }
 
@@ -44,7 +46,7 @@ public class TitleService
 
   public unsafe TitleId GetAndCacheCurrentTitleId()
   {
-    IPlayerCharacter? localPlayer = ClientState.LocalPlayer;
+    IPlayerCharacter? localPlayer = ObjectTable.LocalPlayer;
     if (localPlayer == null || localPlayer.Address == IntPtr.Zero)
       return _lastTitleId;
 
@@ -110,7 +112,7 @@ public class TitleService
   }
 
   public string GetTitleName(Title titleRow) =>
-    (ClientState.LocalPlayer?.Customize[(int)CustomizeIndex.Gender] == 1
+    (ObjectTable.LocalPlayer?.Customize[(int)CustomizeIndex.Gender] == 1
       ? titleRow.Feminine
       : titleRow.Masculine).ToString();
 

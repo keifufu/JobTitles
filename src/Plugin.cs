@@ -16,6 +16,8 @@ public sealed class Plugin : IDalamudPlugin
     IFramework framework,
     IGameInteropProvider interopProvider,
     IPluginLog pluginLog,
+    IObjectTable objectTable,
+    IPlayerState playerState,
     ITextureProvider textureProvider,
     IToastGui toastGui)
   {
@@ -36,6 +38,8 @@ public sealed class Plugin : IDalamudPlugin
         collection.AddSingleton(framework);
         collection.AddSingleton(interopProvider);
         collection.AddSingleton(pluginLog);
+        collection.AddSingleton(objectTable);
+        collection.AddSingleton(playerState);
         collection.AddSingleton(textureProvider);
         collection.AddSingleton(toastGui);
 
@@ -67,9 +71,9 @@ public sealed class Plugin : IDalamudPlugin
   {
     Logger logger = s.GetRequiredService<Logger>();
     IDalamudPluginInterface pluginInterface = s.GetRequiredService<IDalamudPluginInterface>();
-    IClientState clientState = s.GetRequiredService<IClientState>();
+    IPlayerState playerState = s.GetRequiredService<IPlayerState>();
     Configuration configuration = pluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
-    configuration.Initialize(logger, pluginInterface, clientState);
+    configuration.Initialize(logger, pluginInterface, playerState);
     return configuration;
   }
 

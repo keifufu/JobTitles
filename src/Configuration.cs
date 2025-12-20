@@ -38,13 +38,13 @@ public class Configuration : IPluginConfiguration
   [NonSerialized]
   private IDalamudPluginInterface? PluginInterface;
   [NonSerialized]
-  private IClientState? ClientState;
+  private IPlayerState? PlayerState;
 
-  public void Initialize(Logger logger, IDalamudPluginInterface pluginInterface, IClientState clientState)
+  public void Initialize(Logger logger, IDalamudPluginInterface pluginInterface, IPlayerState playerState)
   {
     Logger = logger;
     PluginInterface = pluginInterface;
-    ClientState = clientState;
+    PlayerState = playerState;
 
     Logger.Configuration = this;
     ConfigurationMigrator.Migrate(this, Logger!);
@@ -54,7 +54,7 @@ public class Configuration : IPluginConfiguration
 
   public CharacterConfig GetCharacterConfig()
   {
-    ulong localContentId = ClientState!.LocalContentId;
+    ulong localContentId = PlayerState!.ContentId;
     if (localContentId == 0)
     {
       Logger!.Error("Not logged in, returning temporary character config.");
@@ -74,7 +74,7 @@ public class Configuration : IPluginConfiguration
 
   public void SaveCharacterConfig(CharacterConfig characterConfig)
   {
-    ulong localContentId = ClientState!.LocalContentId;
+    ulong localContentId = PlayerState!.ContentId;
     if (localContentId == 0)
     {
       Logger!.Error("Not logged in, not saving character config.");

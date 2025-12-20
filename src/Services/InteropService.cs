@@ -36,25 +36,25 @@ public class InteropService : IHostedService
   }
 
   private unsafe delegate void ActorControlSelfDelegate(
-    uint entityId, uint id, uint arg0, uint arg1, uint arg2, uint arg3, uint arg4, uint arg5, ulong targetId, byte a10);
+    uint category, uint eventId, uint param1, uint param2, uint param3, uint param4, uint param5, uint param6, uint param7, uint param8, ulong targetId, byte param9);
 
   [Signature("E8 ?? ?? ?? ?? 0F B7 0B 83 E9 64", DetourName = nameof(ActorControlSelfDetour))]
   private readonly Hook<ActorControlSelfDelegate> ActorControlSelfHook = null!;
 
   private static readonly uint ActorControlSelfAchievementId = 0x203;
 
-  private void ActorControlSelfDetour(uint entityId, uint id, uint arg0, uint arg1, uint arg2, uint arg3, uint arg4, uint arg5, ulong targetId, byte a10)
+  private void ActorControlSelfDetour(uint category, uint eventId, uint param1, uint param2, uint param3, uint param4, uint param5, uint param6, uint param7, uint param8, ulong targetId, byte param9)
   {
-    ActorControlSelfHook.Original(entityId, id, arg0, arg1, arg2, arg3, arg4, arg5, targetId, a10);
-    // Logger.Debug($"ActorControlSelf ({entityId} {id} {arg0} {arg1} {arg2} {arg3} {arg4} {arg5} {targetId} {a10})");
+    ActorControlSelfHook.Original(category, eventId, param1, param2, param3, param4, param5, param6, param7, param8, targetId, param9);
+    // Logger.Debug($"ActorControlSelf ({category} {eventId} {param1} {param2} {param3} {param4} {param5} {param6} {param7} {param8} {targetId} {param9})");
 
     // While we do fetch and cache unlocked titles upon opening `ConfigWindow`, this makes sure
     // the cache stays updated even if the user does not interact with the `ConfigWindow` for a
     // long amount of time.
-    if (id == ActorControlSelfAchievementId)
+    if (eventId == ActorControlSelfAchievementId)
     {
-      Logger.Debug($"ActorControlSelf::Achievement ({entityId} {id} {arg0} {arg1} {arg2} {arg3} {arg4} {arg5} {targetId} {a10})");
-      uint achievementId = arg0;
+      Logger.Debug($"ActorControlSelf::Achievement ({category} {eventId} {param1} {param2} {param3} {param4} {param5} {param6} {param7} {param8} {targetId} {param9})");
+      uint achievementId = param1;
       if (DataManager.Excel.GetSheet<Achievement>().TryGetRow(achievementId, out Achievement achievementRow))
       {
         Logger.Debug($"ActorControlSelf::Achievement achievementId::{achievementId} is valid");
