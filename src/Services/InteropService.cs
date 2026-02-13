@@ -1,5 +1,6 @@
 using Dalamud.Hooking;
-using Dalamud.Utility.Signatures;
+using FFXIVClientStructs.FFXIV.Client.Game.Object;
+using FFXIVClientStructs.FFXIV.Client.Network;
 
 namespace JobTitles.Services;
 
@@ -9,19 +10,28 @@ public class InteropService : IHostedService
   private readonly TitleService TitleService;
   private readonly IGameInteropProvider InteropProvider;
   private readonly IDataManager DataManager;
+  private readonly IObjectTable ObjectTable;
 
-  public InteropService(Logger logger, TitleService titleService, IGameInteropProvider interopProvider, IDataManager dataManager)
+  private Hook<PacketDispatcher.Delegates.HandleActorControlPacket>? _handleActorControlPacketHook;
+
+  public InteropService(Logger logger, TitleService titleService, IGameInteropProvider interopProvider, IDataManager dataManager, IObjectTable objectTable)
   {
     Logger = logger;
     TitleService = titleService;
     InteropProvider = interopProvider;
     DataManager = dataManager;
+    ObjectTable = objectTable;
   }
 
   public Task StartAsync(CancellationToken cancellationToken)
   {
-    InteropProvider.InitializeFromAttributes(this);
-    ActorControlSelfHook.Enable();
+    _handleActorControlPacketHook ??= InteropProvider.HookFromAddress<PacketDispatcher.Delegates.HandleActorControlPacket>(
+      PacketDispatcher.Addresses.HandleActorControlPacket.Value,
+      HandleActorControlPacketDetour
+    );
+
+    if (!_handleActorControlPacketHook.IsEnabled)
+      _handleActorControlPacketHook.Enable();
 
     Logger.Debug("InteropService started");
     return Task.CompletedTask;
@@ -29,32 +39,25 @@ public class InteropService : IHostedService
 
   public Task StopAsync(CancellationToken cancellationToken)
   {
-    ActorControlSelfHook.Dispose();
+    _handleActorControlPacketHook?.Dispose();
 
     Logger.Debug("InteropService stopped");
     return Task.CompletedTask;
   }
 
-  private unsafe delegate void ActorControlSelfDelegate(
-    uint category, uint eventId, uint param1, uint param2, uint param3, uint param4, uint param5, uint param6, uint param7, uint param8, ulong targetId, byte param9);
+  private static readonly uint AchievementCategory = 0x203;
 
-  [Signature("E8 ?? ?? ?? ?? 0F B7 0B 83 E9 64", DetourName = nameof(ActorControlSelfDetour))]
-  private readonly Hook<ActorControlSelfDelegate> ActorControlSelfHook = null!;
-
-  private static readonly uint ActorControlSelfAchievementId = 0x203;
-
-  private void ActorControlSelfDetour(uint category, uint eventId, uint param1, uint param2, uint param3, uint param4, uint param5, uint param6, uint param7, uint param8, ulong targetId, byte param9)
+  private void HandleActorControlPacketDetour(uint entityId, uint category, uint arg1, uint arg2, uint arg3, uint arg4, uint arg5, uint arg6, uint arg7, uint arg8, GameObjectId targetId, bool isRecorded)
   {
-    ActorControlSelfHook.Original(category, eventId, param1, param2, param3, param4, param5, param6, param7, param8, targetId, param9);
-    // Logger.Debug($"ActorControlSelf ({category} {eventId} {param1} {param2} {param3} {param4} {param5} {param6} {param7} {param8} {targetId} {param9})");
+    _handleActorControlPacketHook!.Original(entityId, category, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, targetId, isRecorded);
+    // Logger.Debug($"ActorControlSelf ({entityId} {category} {arg1} {arg2} {arg3} {arg4} {arg5} {arg6} {arg7} {arg8} {targetId} {isRecorded})");
 
     // While we do fetch and cache unlocked titles upon opening `ConfigWindow`, this makes sure
     // the cache stays updated even if the user does not interact with the `ConfigWindow` for a
     // long amount of time.
-    if (eventId == ActorControlSelfAchievementId)
+    if (category == AchievementCategory && ObjectTable.LocalPlayer?.EntityId == entityId)
     {
-      Logger.Debug($"ActorControlSelf::Achievement ({category} {eventId} {param1} {param2} {param3} {param4} {param5} {param6} {param7} {param8} {targetId} {param9})");
-      uint achievementId = param1;
+      uint achievementId = arg1;
       if (DataManager.Excel.GetSheet<Achievement>().TryGetRow(achievementId, out Achievement achievementRow))
       {
         Logger.Debug($"ActorControlSelf::Achievement achievementId::{achievementId} is valid");

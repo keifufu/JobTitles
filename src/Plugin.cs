@@ -56,7 +56,7 @@ public sealed class Plugin : IDalamudPlugin
         collection.AddSingleton<InteropService>();
 
         collection.AddSingleton(InitializeConfiguration);
-        collection.AddSingleton(new WindowSystem("JobTitles"));
+        collection.AddSingleton(new WindowSystem(pluginInterface.InternalName));
 
         collection.AddHostedService<WindowService>();
         collection.AddHostedService<CommandService>();
