@@ -67,7 +67,7 @@ public class TitleService
     if (_shouldCacheTitlesUnlockBitmask && TitleList.DataReceived)
     {
       CharacterConfig characterConfig = Configuration.GetCharacterConfig();
-      characterConfig.CachedTitlesUnlockBitmask = new List<byte>(TitleList.TitlesUnlockBitmask.ToArray());
+      characterConfig.CachedTitlesUnlockBitmask = new List<byte>(TitleList.UnlockedTitles.ToArray());
       Configuration.SaveCharacterConfig(characterConfig);
       Logger.Debug($"CachedTitlesUnlockBitmask::{string.Join(",", characterConfig.CachedTitlesUnlockBitmask)}");
       _shouldCacheTitlesUnlockBitmask = false;
