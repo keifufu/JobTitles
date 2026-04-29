@@ -39,7 +39,7 @@ public class PromptWindow : Window, IDisposable
     BringToFront();
   }
 
-  public void Close()
+  public unsafe void Close()
   {
     if (!IsOpen) return;
     Logger.Debug("Closing prompt window");

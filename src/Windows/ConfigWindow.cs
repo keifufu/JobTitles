@@ -63,7 +63,7 @@ public class ConfigWindow : Window, IDisposable
     UpdateSizeContraints();
     if (DrawJobSearch()) return;
 
-    using ImRaii.IEndObject tabBar = ImRaii.TabBar("###TabBar");
+    using ImRaii.TabBarDisposable tabBar = ImRaii.TabBar("###TabBar");
     if (!tabBar.Success)
     {
       Logger.Error("Failed to draw TabBar?");
@@ -165,7 +165,7 @@ public class ConfigWindow : Window, IDisposable
 
   private void DrawJobTab(string name, HashSet<JobService.Job> jobs)
   {
-    using ImRaii.IEndObject tabItem = ImRaii.TabItem(name);
+    using ImRaii.TabItemDisposable tabItem = ImRaii.TabItem(name);
     if (!tabItem.Success) return;
 
     DrawJobTitleSelectRows(jobRow => jobs.Contains(JobService.ToJob(jobRow.RowId)));
@@ -173,7 +173,7 @@ public class ConfigWindow : Window, IDisposable
 
   private void DrawOptionsTab()
   {
-    using ImRaii.IEndObject tabItem = ImRaii.TabItem($"{Loc.Get(Loc.Phrase.Options)}###Options");
+    using ImRaii.TabItemDisposable tabItem = ImRaii.TabItem($"{Loc.Get(Loc.Phrase.Options)}###Options");
     if (!tabItem.Success) return;
 
     CharacterConfig characterConfig = Configuration.GetCharacterConfig();
@@ -188,7 +188,7 @@ public class ConfigWindow : Window, IDisposable
     ImGui.Text(Loc.Get(Loc.Phrase.Language));
 
     ImGui.SetNextItemWidth(ScaledFloat(200));
-    using (ImRaii.IEndObject dropdown = ImRaii.Combo("###LanguageSelect", Loc.GetLanguageName(Configuration.Language)))
+    using (ImRaii.ComboDisposable dropdown = ImRaii.Combo("###LanguageSelect", Loc.GetLanguageName(Configuration.Language)))
     {
       if (dropdown.Success)
       {
@@ -254,7 +254,7 @@ public class ConfigWindow : Window, IDisposable
       string selectedTitleName = characterConfig.GAROTitleIdV2 == TitleService.TitleIds.DoNotOverride
         ? Loc.Get(Loc.Phrase.SelectTitle)
         : TitleService.GetTitleName(characterConfig.GAROTitleIdV2);
-      using (ImRaii.IEndObject dropdown = ImRaii.Combo("###GAROTitleSelect", selectedTitleName))
+      using (ImRaii.ComboDisposable dropdown = ImRaii.Combo("###GAROTitleSelect", selectedTitleName))
       {
         if (dropdown.Success)
         {
@@ -383,7 +383,7 @@ public class ConfigWindow : Window, IDisposable
     ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
 
     string selectedTitleName = TitleService.GetTitleName(selectedTitleId);
-    using (ImRaii.IEndObject dropdown = ImRaii.Combo($"###Title{jobRow.RowId}", selectedTitleName))
+    using (ImRaii.ComboDisposable dropdown = ImRaii.Combo($"###Title{jobRow.RowId}", selectedTitleName))
     {
       if (dropdown.Success)
       {
