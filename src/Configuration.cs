@@ -5,12 +5,12 @@ namespace JobTitles;
 [Serializable]
 public class CharacterConfig
 {
-  public Dictionary<JobService.Job, TitleId> JobTitleMappingsV2 { get; set; } = [];
-  public List<byte> CachedTitlesUnlockBitmask { get; set; } = [];
-  public ClassModeOption ClassMode { get; set; } = ClassModeOption.InheritJobTitles;
-  public bool UseGAROTitleInPvP { get; set; }
-  public bool TryUseGAROTitleForCurrentJob { get; set; }
-  public TitleId GAROTitleIdV2 { get; set; } = TitleService.TitleIds.DoNotOverride;
+  public Dictionary<JobService.Job, TitleId> JobTitleMappingsV2 = [];
+  public List<byte> CachedTitlesUnlockBitmask = [];
+  public ClassModeOption ClassMode = ClassModeOption.InheritJobTitles;
+  public bool UseGAROTitleInPvP = false;
+  public bool TryUseGAROTitleForCurrentJob = false;
+  public TitleId GAROTitleIdV2 = TitleService.TitleIds.DoNotOverride;
 
   public enum ClassModeOption
   {
@@ -19,19 +19,19 @@ public class CharacterConfig
   }
 
   // Migrated to JobTitleMappingsV2 in v2
-  public Dictionary<uint, int> JobTitleMappings { get; set; } = [];
+  public Dictionary<uint, int> JobTitleMappings = [];
   // Migrated to GAROTitleIdV2 in v2
-  public int GAROTitleId { get; set; } = -1; // V1: TitleIds.DoNotOverride = -1
+  public int GAROTitleId = -1; // V1: TitleIds.DoNotOverride = -1
 }
 
 [Serializable]
 public class Configuration : IPluginConfiguration
 {
   public int Version { get; set; } = 2;
-  public Dictionary<ulong, CharacterConfig> CharacterConfigs { get; set; } = [];
-  public Language Language { get; set; } = Language.None;
-  public bool PrintTitleChangesInChat { get; set; }
-  public bool Debug { get; set; }
+  public Dictionary<ulong, CharacterConfig> CharacterConfigs = [];
+  public Language Language = Language.None;
+  public bool PrintTitleChangesInChat = false;
+  public bool Debug = false;
 
   [NonSerialized]
   private ILogger _logger = null!;

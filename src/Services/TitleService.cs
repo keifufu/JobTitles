@@ -39,7 +39,7 @@ public class TitleService(
   private unsafe TitleController TitleController => UIState.Instance()->TitleController;
   private unsafe TitleList TitleList => UIState.Instance()->TitleList;
 
-  private TitleId _lastTitleId;
+  private TitleId _lastTitleId = TitleIds.None;
   private bool _shouldCacheTitlesUnlockBitmask = true;
 
   public static TitleId ToTitleId(uint titleId) =>
