@@ -5,11 +5,11 @@ namespace JobTitles;
 [Serializable]
 public class CharacterConfig
 {
-  public Dictionary<JobService.Job, TitleId> JobTitleMappingsV2 { get; set; } = new();
-  public List<byte> CachedTitlesUnlockBitmask { get; set; } = new();
+  public Dictionary<JobService.Job, TitleId> JobTitleMappingsV2 { get; set; } = [];
+  public List<byte> CachedTitlesUnlockBitmask { get; set; } = [];
   public ClassModeOption ClassMode { get; set; } = ClassModeOption.InheritJobTitles;
-  public bool UseGAROTitleInPvP { get; set; } = false;
-  public bool TryUseGAROTitleForCurrentJob { get; set; } = false;
+  public bool UseGAROTitleInPvP { get; set; }
+  public bool TryUseGAROTitleForCurrentJob { get; set; }
   public TitleId GAROTitleIdV2 { get; set; } = TitleService.TitleIds.DoNotOverride;
 
   public enum ClassModeOption
@@ -19,7 +19,7 @@ public class CharacterConfig
   }
 
   // Migrated to JobTitleMappingsV2 in v2
-  public Dictionary<uint, int> JobTitleMappings { get; set; } = new();
+  public Dictionary<uint, int> JobTitleMappings { get; set; } = [];
   // Migrated to GAROTitleIdV2 in v2
   public int GAROTitleId { get; set; } = -1; // V1: TitleIds.DoNotOverride = -1
 }
@@ -28,42 +28,42 @@ public class CharacterConfig
 public class Configuration : IPluginConfiguration
 {
   public int Version { get; set; } = 2;
-  public Dictionary<ulong, CharacterConfig> CharacterConfigs { get; set; } = new();
+  public Dictionary<ulong, CharacterConfig> CharacterConfigs { get; set; } = [];
   public Language Language { get; set; } = Language.None;
-  public bool PrintTitleChangesInChat { get; set; } = false;
-  public bool Debug { get; set; } = false;
+  public bool PrintTitleChangesInChat { get; set; }
+  public bool Debug { get; set; }
 
   [NonSerialized]
-  private Logger? Logger;
+  private ILogger _logger = null!;
   [NonSerialized]
-  private IDalamudPluginInterface? PluginInterface;
+  private IDalamudPluginInterface _pluginInterface = null!;
   [NonSerialized]
-  private IPlayerState? PlayerState;
+  private IPlayerState _playerState = null!;
 
-  public void Initialize(Logger logger, IDalamudPluginInterface pluginInterface, IPlayerState playerState)
+  public void Initialize(ILogger logger, IDalamudPluginInterface pluginInterface, IPlayerState playerState)
   {
-    Logger = logger;
-    PluginInterface = pluginInterface;
-    PlayerState = playerState;
+    _logger = logger;
+    _pluginInterface = pluginInterface;
+    _playerState = playerState;
 
-    Logger.Configuration = this;
-    ConfigurationMigrator.Migrate(this, Logger!);
+    _logger.SetConfiguration(this);
+    ConfigurationMigrator.Migrate(this, _logger);
   }
 
-  public void Save() => PluginInterface!.SavePluginConfig(this);
+  public void Save() => _pluginInterface.SavePluginConfig(this);
 
   public CharacterConfig GetCharacterConfig()
   {
-    ulong localContentId = PlayerState!.ContentId;
+    ulong localContentId = _playerState.ContentId;
     if (localContentId == 0)
     {
-      Logger!.Error("Not logged in, returning temporary character config.");
+      _logger.Error("Not logged in, returning temporary character config.");
       return new CharacterConfig();
     }
 
     if (!CharacterConfigs.TryGetValue(localContentId, out CharacterConfig? characterConfig))
     {
-      Logger!.Debug($"Found no configuration for CID::{localContentId}, creating one.");
+      _logger.Debug($"Found no configuration for CID::{localContentId}, creating one.");
       characterConfig = new CharacterConfig();
       CharacterConfigs.TryAdd(localContentId, characterConfig);
       Save();
@@ -74,10 +74,10 @@ public class Configuration : IPluginConfiguration
 
   public void SaveCharacterConfig(CharacterConfig characterConfig)
   {
-    ulong localContentId = PlayerState!.ContentId;
+    ulong localContentId = _playerState.ContentId;
     if (localContentId == 0)
     {
-      Logger!.Error("Not logged in, not saving character config.");
+      _logger.Error("Not logged in, not saving character config.");
       return;
     }
 
@@ -88,7 +88,7 @@ public class Configuration : IPluginConfiguration
 
 public static class ConfigurationMigrator
 {
-  public static void Migrate(Configuration configuration, Logger logger)
+  public static void Migrate(Configuration configuration, ILogger logger)
   {
     if (configuration.Version == 0)
     {
@@ -105,7 +105,7 @@ public static class ConfigurationMigrator
     }
   }
 
-  private static void MigrateV0ToV1(Configuration configuration, Logger logger)
+  private static void MigrateV0ToV1(Configuration configuration, ILogger logger)
   {
     // Migrated from using TitleIds.None as the GAROTitleId default value to TitleIds.DoNotOverride
     logger.Debug($"Migrating configuration using {nameof(MigrateV0ToV1)}");
@@ -120,7 +120,7 @@ public static class ConfigurationMigrator
     configuration.Save();
   }
 
-  private static void MigrateV1ToV2(Configuration configuration, Logger logger)
+  private static void MigrateV1ToV2(Configuration configuration, ILogger logger)
   {
     // Migrated from using int as titleId to using TitleId (global alias for ushort)
     // and using JobService.Job as the key in JobTitleMappings instead of uint
@@ -136,7 +136,7 @@ public static class ConfigurationMigrator
           characterConfig.JobTitleMappingsV2[JobService.ToJob(mapping.Key)] = TitleService.ToTitleId((uint)mapping.Value);
       }
 
-      characterConfig.JobTitleMappings = new();
+      characterConfig.JobTitleMappings = [];
 
       if (characterConfig.GAROTitleId == -1) // V1: TitleIds.DoNotOverride = -1
         characterConfig.GAROTitleIdV2 = TitleService.TitleIds.DoNotOverride;

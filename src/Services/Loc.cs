@@ -2,23 +2,20 @@ using Dalamud.Game;
 
 namespace JobTitles;
 
-public class Loc
+public interface ILoc
 {
-  private readonly Configuration Configuration;
-  private readonly IClientState ClientState;
+  Language Language { get; }
+  string GetLanguageName(Language language);
+  string Get(Loc.Phrase phrase);
+  string GetFallbackTranslation(Loc.Phrase phrase);
+}
 
-  public Loc(Configuration configuration, IClientState clientState)
-  {
-    Configuration = configuration;
-    ClientState = clientState;
-  }
-
+public class Loc(Configuration _configuration, IClientState _clientState) : ILoc
+{
   public Language Language
-  {
-    get => Configuration.Language == Language.None ? GetClientLanguage() : Configuration.Language;
-  }
+    => _configuration.Language == Language.None ? GetClientLanguage() : _configuration.Language;
 
-  private Language GetClientLanguage() => ClientState.ClientLanguage switch
+  private Language GetClientLanguage() => _clientState.ClientLanguage switch
   {
     ClientLanguage.Japanese => Language.Japanese,
     ClientLanguage.English => Language.English,
@@ -165,6 +162,7 @@ public class Loc
     _ => Get(Phrase.ClientLanguage)
   };
 
+#pragma warning disable IDE0008
   public string Get(Phrase phrase) =>
     Translations.TryGetValue(Language, out var translations)
     && translations.TryGetValue(phrase, out var translation)
@@ -176,4 +174,5 @@ public class Loc
     && defaultTranslations.TryGetValue(phrase, out var defaultTranslation)
       ? defaultTranslation
       : phrase.ToString();
+#pragma warning restore IDE0008
 }

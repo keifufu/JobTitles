@@ -1,52 +1,38 @@
 namespace JobTitles.Services;
 
-public class WindowService : IHostedService
+public interface IWindowService : IHostedService;
+
+public class WindowService(
+  ILogger _logger,
+  ConfigWindow _configWindow,
+  PromptWindow _promptWindow,
+  WindowSystem _windowSystem,
+  IDalamudPluginInterface _pluginInterface) : IWindowService
 {
-  private readonly Logger Logger;
-  private readonly IDalamudPluginInterface PluginInterface;
-  private readonly WindowSystem WindowSystem;
-  private readonly ConfigWindow ConfigWindow;
-  private readonly PromptWindow PromptWindow;
-
-  public WindowService(Logger logger, IDalamudPluginInterface pluginInterface, WindowSystem windowSystem, ConfigWindow configWindow, PromptWindow promptWindow)
-  {
-    Logger = logger;
-    PluginInterface = pluginInterface;
-    WindowSystem = windowSystem;
-    ConfigWindow = configWindow;
-    PromptWindow = promptWindow;
-  }
-
   public Task StartAsync(CancellationToken cancellationToken)
   {
-    WindowSystem.AddWindow(ConfigWindow);
-    WindowSystem.AddWindow(PromptWindow);
+    _windowSystem.AddWindow(_configWindow);
+    _windowSystem.AddWindow(_promptWindow);
 
-    PluginInterface.UiBuilder.Draw += UiBuilderOnDraw;
-    PluginInterface.UiBuilder.OpenConfigUi += ToggleConfigUi;
+    _pluginInterface.UiBuilder.Draw += UiBuilderOnDraw;
+    _pluginInterface.UiBuilder.OpenMainUi += ToggleUi;
+    _pluginInterface.UiBuilder.OpenConfigUi += ToggleUi;
 
-    Logger.Debug("WindowService started");
-    return Task.CompletedTask;
-  }
-
-  private void ToggleConfigUi()
-  {
-    ConfigWindow.Toggle();
-  }
-
-  private void UiBuilderOnDraw()
-  {
-    WindowSystem.Draw();
+    return _logger.ServiceLifecycle();
   }
 
   public Task StopAsync(CancellationToken cancellationToken)
   {
-    PluginInterface.UiBuilder.OpenConfigUi -= ToggleConfigUi;
-    PluginInterface.UiBuilder.Draw -= UiBuilderOnDraw;
+    _pluginInterface.UiBuilder.OpenConfigUi -= ToggleUi;
+    _pluginInterface.UiBuilder.OpenMainUi -= ToggleUi;
+    _pluginInterface.UiBuilder.Draw -= UiBuilderOnDraw;
 
-    WindowSystem.RemoveAllWindows();
+    _windowSystem.RemoveAllWindows();
 
-    Logger.Debug("WindowService stopped");
-    return Task.CompletedTask;
+    return _logger.ServiceLifecycle();
   }
+
+  private void ToggleUi() => _configWindow.Toggle();
+
+  private void UiBuilderOnDraw() => _windowSystem.Draw();
 }

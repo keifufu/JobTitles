@@ -1,67 +1,117 @@
-using System.IO;
 using System.Runtime.CompilerServices;
-using Dalamud.Game.Gui.Toast;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 
 namespace JobTitles.Services;
 
-public class Logger
+public interface ILogger
 {
-  public Configuration Configuration { get; set; } = new Configuration();
+  void SetConfiguration(Configuration configuration);
 
-  private readonly IPluginLog PluginLog;
-  private readonly IToastGui ToastGui;
-  private readonly IChatGui ChatGui;
+  void Chat(string pre,
+    string italic = "",
+    string post = "",
+    string name = "",
+    XivChatType type = XivChatType.Debug,
+    bool addPrefix = true);
 
-  public Logger(IPluginLog pluginLog, IToastGui toastGui, IChatGui chatGui)
+  void Debug(string text,
+    [CallerFilePath] string callerPath = "",
+    [CallerMemberName] string callerName = "",
+    [CallerLineNumber] int lineNumber = -1);
+
+  void Warn(Exception ex,
+    [CallerFilePath] string callerPath = "",
+    [CallerMemberName] string callerName = "",
+    [CallerLineNumber] int lineNumber = -1);
+
+  void Error(string text,
+    [CallerFilePath] string callerPath = "",
+    [CallerMemberName] string callerName = "",
+    [CallerLineNumber] int lineNumber = -1);
+
+  void Error(Exception ex,
+    [CallerFilePath] string callerPath = "",
+    [CallerMemberName] string callerName = "",
+    [CallerLineNumber] int lineNumber = -1);
+
+  Task ServiceLifecycle(string? status = null,
+    [CallerFilePath] string callerPath = "",
+    [CallerMemberName] string callerName = "",
+    [CallerLineNumber] int lineNumber = -1);
+}
+
+public class Logger(IPluginLog _pluginLog, IChatGui _chatGui) : ILogger
+{
+  private Configuration _configuration = new();
+
+  public void SetConfiguration(Configuration configuration)
+    => _configuration = configuration;
+
+  public void Chat(string pre,
+    string italic = "",
+    string post = "",
+    string name = "",
+    XivChatType type = XivChatType.Debug,
+    bool addPrefix = true)
   {
-    PluginLog = pluginLog;
-    ToastGui = toastGui;
-    ChatGui = chatGui;
-  }
-
-  public void Toast(string pre, string italic = "", string post = "")
-  {
-    ToastGui.ShowNormal(
-      new SeStringBuilder()
-        .AddText(pre)
-        .AddItalics(italic)
-        .AddText(post)
-        .Build(),
-      new ToastOptions
-      {
-        Position = ToastPosition.Bottom,
-        Speed = ToastSpeed.Fast,
-      }
-    );
-  }
-
-  public void Chat(string pre, string italic = "", string post = "")
-  {
-    XivChatEntry chatMessage = new XivChatEntry
+    XivChatEntry chatMessage = new()
     {
-      Type = XivChatType.Debug,
+      Type = type,
+      Name = new SeStringBuilder().AddText(name).Build(),
       Message = new SeStringBuilder()
-        .AddUiForeground("[JobTitles] ", 35)
+        .AddUiForeground(addPrefix ? "[Yarn] " : "", 35)
         .AddText(pre)
         .AddItalics(italic)
         .AddText(post)
         .Build(),
     };
-    ChatGui.Print(chatMessage);
+    _chatGui.Print(chatMessage);
     Debug($"Printed chatMessage::'{chatMessage.Message}'");
   }
 
-  private string FormatCallsite(string callerPath = "", string callerName = "", int lineNumber = -1) =>
-    $"[{Path.GetFileName(callerPath)}:{callerName}:{lineNumber}]";
+  private string FormatCallsite(string callerPath, string callerName, int lineNumber)
+    => $"[{Path.GetFileName(callerPath)}:{callerName}:{lineNumber}]";
 
-  public void Error(string text, [CallerFilePath] string callerPath = "", [CallerMemberName] string callerName = "", [CallerLineNumber] int lineNumber = -1) =>
-    PluginLog.Error($"{FormatCallsite(callerPath, callerName, lineNumber)} {text}");
-
-  public void Debug(string text, [CallerFilePath] string callerPath = "", [CallerMemberName] string callerName = "", [CallerLineNumber] int lineNumber = -1)
+  public void Debug(string text,
+    [CallerFilePath] string callerPath = "",
+    [CallerMemberName] string callerName = "",
+    [CallerLineNumber] int lineNumber = -1)
   {
-    if (!Configuration.Debug) return;
-    PluginLog.Debug($"{FormatCallsite(callerPath, callerName, lineNumber)} {text}");
+    if (!_configuration.Debug) return;
+    _pluginLog.Debug($"{FormatCallsite(callerPath, callerName, lineNumber)} {text}");
+  }
+
+  public void Warn(Exception ex,
+    [CallerFilePath] string callerPath = "",
+    [CallerMemberName] string callerName = "",
+    [CallerLineNumber] int lineNumber = -1)
+    => _pluginLog.Warning($"{FormatCallsite(callerPath, callerName, lineNumber)} Exception: {ex}");
+
+  public void Error(string text,
+    [CallerFilePath] string callerPath = "",
+    [CallerMemberName] string callerName = "",
+    [CallerLineNumber] int lineNumber = -1)
+    => _pluginLog.Error($"{FormatCallsite(callerPath, callerName, lineNumber)} {text}");
+
+  public void Error(Exception ex,
+    [CallerFilePath] string callerPath = "",
+    [CallerMemberName] string callerName = "",
+    [CallerLineNumber] int lineNumber = -1)
+    => _pluginLog.Error($"{FormatCallsite(callerPath, callerName, lineNumber)} Exception: {ex}");
+
+  public Task ServiceLifecycle(string? status = null,
+    [CallerFilePath] string callerPath = "",
+    [CallerMemberName] string callerName = "",
+    [CallerLineNumber] int lineNumber = -1)
+  {
+    string className = Path.GetFileNameWithoutExtension(callerPath);
+    string lifecycleStage = status ??
+      (callerName.Contains("Start")
+      ? "started" : callerName.Contains("Stop")
+      ? "stopped" : "changed");
+
+    Debug($"{className} {lifecycleStage}", callerPath, callerName, lineNumber);
+    return Task.CompletedTask;
   }
 }

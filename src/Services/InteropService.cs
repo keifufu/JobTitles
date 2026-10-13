@@ -4,78 +4,67 @@ using FFXIVClientStructs.FFXIV.Client.Network;
 
 namespace JobTitles.Services;
 
-public class InteropService : IHostedService
+public interface IInteropService : IHostedService;
+
+public class InteropService(
+  ILogger _logger,
+  IDataManager _dataManager,
+  IObjectTable _objectTable,
+  ITitleService _titleService,
+  IGameInteropProvider _interopProvider) : IInteropService
 {
-  private readonly Logger Logger;
-  private readonly TitleService TitleService;
-  private readonly IGameInteropProvider InteropProvider;
-  private readonly IDataManager DataManager;
-  private readonly IObjectTable ObjectTable;
-
   private Hook<PacketDispatcher.Delegates.HandleActorControlPacket>? _handleActorControlPacketHook;
-
-  public InteropService(Logger logger, TitleService titleService, IGameInteropProvider interopProvider, IDataManager dataManager, IObjectTable objectTable)
-  {
-    Logger = logger;
-    TitleService = titleService;
-    InteropProvider = interopProvider;
-    DataManager = dataManager;
-    ObjectTable = objectTable;
-  }
+  private static readonly uint AchievementCategory = 0x203;
 
   public Task StartAsync(CancellationToken cancellationToken)
   {
-    _handleActorControlPacketHook ??= InteropProvider.HookFromAddress<PacketDispatcher.Delegates.HandleActorControlPacket>(
+    _handleActorControlPacketHook = _interopProvider.HookFromAddress<PacketDispatcher.Delegates.HandleActorControlPacket>(
       PacketDispatcher.Addresses.HandleActorControlPacket.Value,
       HandleActorControlPacketDetour
     );
+    _handleActorControlPacketHook.Enable();
 
-    if (!_handleActorControlPacketHook.IsEnabled)
-      _handleActorControlPacketHook.Enable();
-
-    Logger.Debug("InteropService started");
-    return Task.CompletedTask;
+    return _logger.ServiceLifecycle();
   }
 
   public Task StopAsync(CancellationToken cancellationToken)
   {
     _handleActorControlPacketHook?.Dispose();
 
-    Logger.Debug("InteropService stopped");
-    return Task.CompletedTask;
+    return _logger.ServiceLifecycle();
   }
 
-  private static readonly uint AchievementCategory = 0x203;
-
-  private void HandleActorControlPacketDetour(uint entityId, uint category, uint arg1, uint arg2, uint arg3, uint arg4, uint arg5, uint arg6, uint arg7, uint arg8, GameObjectId targetId, bool isRecorded)
+  private void HandleActorControlPacketDetour(
+    uint entityId,
+    uint category,
+    uint achievementId,
+    uint arg2, uint arg3, uint arg4, uint arg5, uint arg6, uint arg7, uint arg8,
+    GameObjectId targetId,
+    bool isRecorded)
   {
-    _handleActorControlPacketHook!.Original(entityId, category, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, targetId, isRecorded);
-    // Logger.Debug($"ActorControlSelf ({entityId} {category} {arg1} {arg2} {arg3} {arg4} {arg5} {arg6} {arg7} {arg8} {targetId} {isRecorded})");
+    _handleActorControlPacketHook!.Original(
+      entityId, category, achievementId, arg2, arg3, arg4, arg5, arg6, arg7, arg8, targetId, isRecorded);
 
     // While we do fetch and cache unlocked titles upon opening `ConfigWindow`, this makes sure
     // the cache stays updated even if the user does not interact with the `ConfigWindow` for a
     // long amount of time.
-    if (category == AchievementCategory && ObjectTable.LocalPlayer?.EntityId == entityId)
+    if (category != AchievementCategory || _objectTable.LocalPlayer?.EntityId != entityId) return;
+    if (!_dataManager.Excel.GetSheet<Achievement>().TryGetRow(achievementId, out Achievement achievementRow))
     {
-      uint achievementId = arg1;
-      if (DataManager.Excel.GetSheet<Achievement>().TryGetRow(achievementId, out Achievement achievementRow))
-      {
-        Logger.Debug($"ActorControlSelf::Achievement achievementId::{achievementId} is valid");
-        TitleId titleId = TitleService.ToTitleId(achievementRow.Title.Value.RowId);
-        if (titleId != TitleService.TitleIds.None)
-        {
-          Logger.Debug($"ActorControlSelf::Achievement achievementId::{achievementId} has valid titleId::{titleId}");
-          TitleService.AddTitleIdToCache(titleId);
-        }
-        else
-        {
-          Logger.Debug($"ActorControlSelf::Achievement achievementId::{achievementId} has no associated title.");
-        }
-      }
-      else
-      {
-        Logger.Debug($"ActorControlSelf::Achievement achievementId::{achievementId} is invalid");
-      }
+      _logger.Debug($"achievementId::{achievementId} is invalid");
+      return;
+    }
+
+    _logger.Debug($"achievementId::{achievementId} is valid");
+    TitleId titleId = TitleService.ToTitleId(achievementRow.Title.Value.RowId);
+    if (titleId != TitleService.TitleIds.None)
+    {
+      _logger.Debug($"achievementId::{achievementId} has valid titleId::{titleId}");
+      _titleService.AddTitleIdToCache(titleId);
+    }
+    else
+    {
+      _logger.Debug($"achievementId::{achievementId} has no associated title.");
     }
   }
 }

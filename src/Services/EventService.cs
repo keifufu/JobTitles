@@ -1,84 +1,70 @@
 namespace JobTitles.Services;
 
-public class EventService : IHostedService
+public interface IEventService : IHostedService;
+
+public class EventService(
+  ILogger _logger,
+  IJobService _jobService,
+  IClientState _clientState,
+  IObjectTable _objectTable,
+  PromptWindow _promptWindow,
+  ITitleService _titleService,
+  Configuration _configuration) : IEventService
 {
-  private readonly Logger Logger;
-  private readonly Configuration Configuration;
-  private readonly JobService JobService;
-  private readonly TitleService TitleService;
-  private readonly PromptWindow PromptWindow;
-  private readonly IClientState ClientState;
-  private readonly IObjectTable ObjectTable;
-
-  public EventService(Logger logger, Configuration configuration, JobService jobService, TitleService titleService, PromptWindow promptWindow, IClientState clientState, IObjectTable objectTable)
-  {
-    Logger = logger;
-    Configuration = configuration;
-    JobService = jobService;
-    TitleService = titleService;
-    PromptWindow = promptWindow;
-    ClientState = clientState;
-    ObjectTable = objectTable;
-  }
-
   public Task StartAsync(CancellationToken cancellationToken)
   {
-    ClientState.Login += OnLogin;
-    ClientState.ClassJobChanged += OnJobChanged;
-    ClientState.EnterPvP += OnEnterPvP;
+    _clientState.Login += OnLogin;
+    _clientState.ClassJobChanged += OnJobChanged;
+    _clientState.EnterPvP += OnEnterPvP;
 
-    Logger.Debug("EventService started");
-    return Task.CompletedTask;
+    return _logger.ServiceLifecycle();
   }
 
   public Task StopAsync(CancellationToken cancellationToken)
   {
-    ClientState.Login -= OnLogin;
-    ClientState.ClassJobChanged -= OnJobChanged;
-    ClientState.EnterPvP -= OnEnterPvP;
+    _clientState.Login -= OnLogin;
+    _clientState.ClassJobChanged -= OnJobChanged;
+    _clientState.EnterPvP -= OnEnterPvP;
 
-    Logger.Debug("EventService stopped");
-    return Task.CompletedTask;
+    return _logger.ServiceLifecycle();
   }
 
-  // If `OnLogin` reverts to invoking without checking for `LocalPlayer` existing,
-  // then move this to `Framework.OnUpdate`.
   private void OnLogin()
   {
-    TitleService.GetAndCacheCurrentTitleId();
-    JobService.OnJobChanged(JobService.GetCurrentJob());
+    _titleService.GetAndCacheCurrentTitleId();
+    _jobService.JobChanged(_jobService.GetCurrentJob());
   }
 
   // `OnJobChanged` triggers twice after logging in, before `LocalPlayer` is set.
   private void OnJobChanged(uint jobId)
   {
-    if (ObjectTable.LocalPlayer == null)
+    if (_objectTable.LocalPlayer == null)
     {
-      Logger.Debug("LocalPlayer is null. Not setting title.");
+      _logger.Debug("LocalPlayer is null. Not setting title.");
       return;
     }
 
     JobService.Job job = JobService.ToJob(jobId);
-    Logger.Debug($"Job changed. job::{job} jobId::{jobId}");
-    JobService.OnJobChanged(job);
+    _logger.Debug($"Job changed. job::{job} jobId::{jobId}");
+    _jobService.JobChanged(job);
 
-    (bool success, string title) = TitleService.SetTitle(job);
-    if (success) PromptWindow.Close();
+    (bool success, string _) = _titleService.SetTitle(job);
+    if (success) _promptWindow.Close();
   }
 
   private void OnEnterPvP()
   {
-    if (!ClientState.IsPvPExcludingDen) return;
+    if (!_clientState.IsPvPExcludingDen) return;
 
-    CharacterConfig characterConfig = Configuration.GetCharacterConfig();
+    CharacterConfig characterConfig = _configuration.GetCharacterConfig();
     if (!characterConfig.UseGAROTitleInPvP) return;
 
-    Logger.Debug("Entered PvP duty");
+    _logger.Debug("Entered PvP duty");
 
-    ushort pvpTitleId = TitleService.GetPvPTitleId(JobService.GetCurrentJob());
-    if (pvpTitleId == TitleService.TitleIds.None || pvpTitleId == TitleService.TitleIds.DoNotOverride) return;
-    if (pvpTitleId == TitleService.GetAndCacheCurrentTitleId()) return;
+    ushort pvpTitleId = _titleService.GetPvPTitleId(_jobService.GetCurrentJob());
+    if (pvpTitleId is TitleService.TitleIds.None or TitleService.TitleIds.DoNotOverride) return;
+    if (pvpTitleId == _titleService.GetAndCacheCurrentTitleId()) return;
 
-    PromptWindow.Open(pvpTitleId);
+    _promptWindow.Open(pvpTitleId);
   }
 }

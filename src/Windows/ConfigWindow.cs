@@ -1,64 +1,46 @@
-using System.Globalization;
-using System.IO;
-using Dalamud.Game.ClientState.Objects.SubKinds;
-using Dalamud.Interface.Textures;
-using Dalamud.Interface.Textures.TextureWraps;
-using Dalamud.Interface.Utility;
-using Dalamud.Interface.Utility.Raii;
-
 namespace JobTitles.Windows;
 
-public class ConfigWindow : Window, IDisposable
+public class ConfigWindow(
+  ILoc _loc,
+  ILogger _logger,
+  IJobService _jobService,
+  IDataManager _dataManager,
+  IObjectTable _objectTable,
+  ITitleService _titleService,
+  Configuration _configuration,
+  ITextureProvider _textureProvider,
+  IDalamudPluginInterface _pluginInterface) : Window("JobTitles###JobTitles"), IHostedService
 {
-  private string _jobSearchTerm = string.Empty;
+  private readonly Dictionary<JobService.Job, bool> _dropdownDrawState = [];
   private string _titleSearchTerm = string.Empty;
-  private Dictionary<JobService.Job, bool> _dropdownDrawState = new();
+  private string _jobSearchTerm = string.Empty;
 
-  private readonly Loc Loc;
-  private readonly Logger Logger;
-  private readonly Configuration Configuration;
-  private readonly JobService JobService;
-  private readonly TitleService TitleService;
-  private readonly IObjectTable ObjectTable;
-  private readonly IDataManager DataManager;
-  private readonly ITextureProvider TextureProvider;
-  private readonly IDalamudPluginInterface PluginInterface;
-
-  public ConfigWindow(Loc loc, Logger logger, Configuration configuration, JobService jobService, TitleService titleService, IObjectTable objectTable, IDataManager dataManager, ITextureProvider textureProvider, IDalamudPluginInterface pluginInterface) : base("JobTitles###JobTitles")
+  public Task StartAsync(CancellationToken cancellationToken)
   {
-    Loc = loc;
-    Logger = logger;
-    Configuration = configuration;
-    JobService = jobService;
-    TitleService = titleService;
-    ObjectTable = objectTable;
-    DataManager = dataManager;
-    TextureProvider = textureProvider;
-    PluginInterface = pluginInterface;
-
     Flags = ImGuiWindowFlags.NoResize | ImGuiWindowFlags.AlwaysAutoResize;
     SizeCondition = ImGuiCond.Always;
+    return _logger.ServiceLifecycle();
   }
 
-  public void Dispose() { }
+  public Task StopAsync(CancellationToken cancellationToken)
+    => _logger.ServiceLifecycle();
 
-  private float ScaledFloat(float value) => value * ImGuiHelpers.GlobalScale;
-  private Vector2 ScaledVector2(float value) => new Vector2(value * ImGuiHelpers.GlobalScale);
+  private float Scaled(float value) => value * ImGuiHelpers.GlobalScale;
 
   public override void Draw()
   {
     UpdateWindowTitle();
 
-    if (ObjectTable.LocalPlayer == null)
+    if (_objectTable.LocalPlayer == null)
     {
-      UpdateSizeContraints(0);
+      UpdateSizeContraints(0.0f);
       DrawLoginPrompt();
       return;
     }
 
     if (ImGui.IsWindowAppearing())
-      TitleService.RequestTitleList();
-    TitleService.CacheTitlesUnlockBitmask();
+      _titleService.RequestTitleList();
+    _titleService.CacheTitlesUnlockBitmask();
 
     UpdateSizeContraints();
     if (DrawJobSearch()) return;
@@ -66,33 +48,41 @@ public class ConfigWindow : Window, IDisposable
     using ImRaii.TabBarDisposable tabBar = ImRaii.TabBar("###TabBar");
     if (!tabBar.Success)
     {
-      Logger.Error("Failed to draw TabBar?");
+      _logger.Error("Failed to draw TabBar?");
       return;
     }
 
-    DrawJobTab($"{Loc.Get(Loc.Phrase.Tanks)}###Tanks", JobService.Tanks);
-    DrawJobTab($"{Loc.Get(Loc.Phrase.Healers)}###Healers", JobService.Healers);
-    DrawJobTab($"{Loc.Get(Loc.Phrase.Melee)}###Melee", JobService.Melee);
-    DrawJobTab($"{Loc.Get(Loc.Phrase.Ranged)}###Ranged", JobService.Ranged);
-    DrawJobTab($"{Loc.Get(Loc.Phrase.Crafters)}###Crafters", JobService.Crafters);
-    DrawJobTab($"{Loc.Get(Loc.Phrase.Gatherers)}###Gatherers", JobService.Gatherers);
+    DrawJobTab($"{_loc.Get(Loc.Phrase.Tanks)}###Tanks", JobService.Tanks);
+    DrawJobTab($"{_loc.Get(Loc.Phrase.Healers)}###Healers", JobService.Healers);
+    DrawJobTab($"{_loc.Get(Loc.Phrase.Melee)}###Melee", JobService.Melee);
+    DrawJobTab($"{_loc.Get(Loc.Phrase.Ranged)}###Ranged", JobService.Ranged);
+    DrawJobTab($"{_loc.Get(Loc.Phrase.Crafters)}###Crafters", JobService.Crafters);
+    DrawJobTab($"{_loc.Get(Loc.Phrase.Gatherers)}###Gatherers", JobService.Gatherers);
     DrawOptionsTab();
   }
 
   private void UpdateSizeContraints(float? minWidth = null)
   {
-    string[] tabLabels = { Loc.Get(Loc.Phrase.Tanks), Loc.Get(Loc.Phrase.Healers), Loc.Get(Loc.Phrase.Melee), Loc.Get(Loc.Phrase.Ranged), Loc.Get(Loc.Phrase.Crafters), Loc.Get(Loc.Phrase.Gatherers), Loc.Get(Loc.Phrase.Options) };
+    string[] tabLabels = [
+      _loc.Get(Loc.Phrase.Tanks),
+      _loc.Get(Loc.Phrase.Healers),
+      _loc.Get(Loc.Phrase.Melee),
+      _loc.Get(Loc.Phrase.Ranged),
+      _loc.Get(Loc.Phrase.Crafters),
+      _loc.Get(Loc.Phrase.Gatherers),
+      _loc.Get(Loc.Phrase.Options)
+    ];
 
     ImGuiStylePtr style = ImGui.GetStyle();
     float windowPadding = style.WindowPadding.X;
     float framePadding = style.FramePadding.X;
     float itemInnerSpacing = style.ItemInnerSpacing.X;
 
-    float width = windowPadding * 2;
+    float width = windowPadding * 2.0f;
 
     for (int i = 0; i < tabLabels.Length; i++)
     {
-      width += ImGui.CalcTextSize(tabLabels[i]).X + (framePadding * 2);
+      width += ImGui.CalcTextSize(tabLabels[i]).X + (framePadding * 2.0f);
 
       if (i < tabLabels.Length - 1)
       {
@@ -104,16 +94,16 @@ public class ConfigWindow : Window, IDisposable
 
     SizeConstraints = new WindowSizeConstraints
     {
-      MinimumSize = new Vector2(minWidth ?? totalWidth, 0),
-      MaximumSize = new Vector2(totalWidth, 500),
+      MinimumSize = new Vector2(minWidth ?? totalWidth, 0.0f),
+      MaximumSize = new Vector2(totalWidth, 500.0f),
     };
   }
 
   private void UpdateWindowTitle()
   {
-    string debugFlag = Configuration.Debug ? " (Debug)" : string.Empty;
+    string debugFlag = _configuration.Debug ? " (Debug)" : string.Empty;
 
-    IPlayerCharacter? localPlayer = ObjectTable.LocalPlayer;
+    IPlayerCharacter? localPlayer = _objectTable.LocalPlayer;
     if (localPlayer == null)
       WindowName = $"Job Titles{debugFlag}###JobTitles";
     else
@@ -128,34 +118,25 @@ public class ConfigWindow : Window, IDisposable
     ImGui.Text(text);
   }
 
-  private void DrawHorizontallyCenteredButton(string text, bool disabledCondition, System.Action onClick)
-  {
-    float availableWidth = ImGui.GetContentRegionAvail().X;
-    float buttonWidth = ImGui.CalcTextSize(text).X + ImGui.GetStyle().FramePadding.X * 2;
-    float buttonX = (availableWidth - buttonWidth) * 0.5f;
-    ImGui.SetCursorPosX(ImGui.GetCursorPosX() + buttonX);
-    using (ImRaii.Disabled(disabledCondition))
-      if (ImGui.Button(text) && !disabledCondition)
-        onClick?.Invoke();
-  }
-
   private void DrawLoginPrompt()
-  {
-    DrawHorizontallyCenteredText(Loc.Get(Loc.Phrase.PleaseLogIn));
-  }
+    => DrawHorizontallyCenteredText(_loc.Get(Loc.Phrase.PleaseLogIn));
 
   private bool DrawJobSearch()
   {
     ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
-    ImGui.InputTextWithHint("###JobSearch", Loc.Get(Loc.Phrase.Search), ref _jobSearchTerm, 256, ImGuiInputTextFlags.AutoSelectAll);
+    ImGui.InputTextWithHint("###JobSearch", _loc.Get(Loc.Phrase.Search),
+      ref _jobSearchTerm, 256, ImGuiInputTextFlags.AutoSelectAll);
 
     string jobSearchTermTrimmed = _jobSearchTerm.Trim();
     if (jobSearchTermTrimmed.Length > 0)
     {
-      Func<ClassJob, bool> shouldRenderJobRow = jobRow => jobSearchTermTrimmed.Length == 0 || jobRow.Name.ToString().IndexOf(jobSearchTermTrimmed, StringComparison.OrdinalIgnoreCase) >= 0;
-      if (DrawJobTitleSelectRows(shouldRenderJobRow) == 0)
+      bool ShouldRenderJobRow(ClassJob jobRow) =>
+        jobSearchTermTrimmed.Length == 0
+        || jobRow.Name.ToString().Contains(jobSearchTermTrimmed, StringComparison.OrdinalIgnoreCase);
+
+      if (DrawJobTitleSelectRows(ShouldRenderJobRow) == 0)
       {
-        DrawHorizontallyCenteredText(Loc.Get(Loc.Phrase.NoResults));
+        DrawHorizontallyCenteredText(_loc.Get(Loc.Phrase.NoResults));
       }
       return true;
     }
@@ -173,22 +154,22 @@ public class ConfigWindow : Window, IDisposable
 
   private void DrawOptionsTab()
   {
-    using ImRaii.TabItemDisposable tabItem = ImRaii.TabItem($"{Loc.Get(Loc.Phrase.Options)}###Options");
+    using ImRaii.TabItemDisposable tabItem = ImRaii.TabItem($"{_loc.Get(Loc.Phrase.Options)}###Options");
     if (!tabItem.Success) return;
 
-    CharacterConfig characterConfig = Configuration.GetCharacterConfig();
+    CharacterConfig characterConfig = _configuration.GetCharacterConfig();
 
     uint infoIconId = 60407;
-    if (!TextureProvider.TryGetFromGameIcon(new GameIconLookup(infoIconId), out ISharedImmediateTexture? infoIcon))
+    if (!_textureProvider.TryGetFromGameIcon(new GameIconLookup(infoIconId), out ISharedImmediateTexture? infoIcon))
     {
-      Logger.Error($"Unable to retrieve icon for infoIconId::{infoIconId}. Not drawing options tab.");
+      _logger.Error($"Unable to retrieve icon for infoIconId::{infoIconId}. Not drawing options tab.");
       return;
     }
 
-    ImGui.Text(Loc.Get(Loc.Phrase.Language));
+    ImGui.Text(_loc.Get(Loc.Phrase.Language));
 
-    ImGui.SetNextItemWidth(ScaledFloat(200));
-    using (ImRaii.ComboDisposable dropdown = ImRaii.Combo("###LanguageSelect", Loc.GetLanguageName(Configuration.Language)))
+    ImGui.SetNextItemWidth(Scaled(200.0f));
+    using (ImRaii.ComboDisposable dropdown = ImRaii.Combo("###LanguageSelect", _loc.GetLanguageName(_configuration.Language)))
     {
       if (dropdown.Success)
       {
@@ -198,150 +179,168 @@ public class ConfigWindow : Window, IDisposable
       }
     }
 
-    ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 5);
-    ImGui.Text(Loc.Get(Loc.Phrase.ClassMode));
+    ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 5.0f);
+    ImGui.Text(_loc.Get(Loc.Phrase.ClassMode));
     ImGui.SameLine();
-    ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 5);
-    ImGui.SetCursorPosX(ImGui.GetCursorPosX() - 10);
-    ImGui.Image(infoIcon!.GetWrapOrEmpty().Handle, ScaledVector2(28));
+    ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 5.0f);
+    ImGui.SetCursorPosX(ImGui.GetCursorPosX() - 10.0f);
+    ImGui.Image(infoIcon.GetWrapOrEmpty().Handle, new(Scaled(28.0f)));
     if (ImGui.IsItemHovered())
+    {
       using (ImRaii.Tooltip())
-        ImGui.Text(Loc.Get(Loc.Phrase.ClassModeTooltip));
+      {
+        ImGui.Text(_loc.Get(Loc.Phrase.ClassModeTooltip));
+      }
+    }
 
-    if (ImGui.RadioButton(Loc.Get(Loc.Phrase.InheritJobTitles), characterConfig.ClassMode == CharacterConfig.ClassModeOption.InheritJobTitles))
+    if (ImGui.RadioButton(_loc.Get(Loc.Phrase.InheritJobTitles),
+      characterConfig.ClassMode == CharacterConfig.ClassModeOption.InheritJobTitles))
     {
       characterConfig.ClassMode = CharacterConfig.ClassModeOption.InheritJobTitles;
-      Configuration.SaveCharacterConfig(characterConfig);
-      TitleService.UpdateTitle();
+      _configuration.SaveCharacterConfig(characterConfig);
+      _titleService.UpdateTitle();
     }
 
-    if (ImGui.RadioButton(Loc.Get(Loc.Phrase.ShowClasses), characterConfig.ClassMode == CharacterConfig.ClassModeOption.ShowClasses))
+    if (ImGui.RadioButton(_loc.Get(Loc.Phrase.ShowClasses),
+      characterConfig.ClassMode == CharacterConfig.ClassModeOption.ShowClasses))
     {
       characterConfig.ClassMode = CharacterConfig.ClassModeOption.ShowClasses;
-      Configuration.SaveCharacterConfig(characterConfig);
-      TitleService.UpdateTitle();
+      _configuration.SaveCharacterConfig(characterConfig);
+      _titleService.UpdateTitle();
     }
 
     ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 5);
-    ImGui.Text(Loc.Get(Loc.Phrase.PvP));
+    ImGui.Text(_loc.Get(Loc.Phrase.PvP));
     ImGui.SameLine();
     ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 5);
     ImGui.SetCursorPosX(ImGui.GetCursorPosX() - 10);
-    ImGui.Image(infoIcon!.GetWrapOrEmpty().Handle, ScaledVector2(28));
+    ImGui.Image(infoIcon.GetWrapOrEmpty().Handle, new(Scaled(28.0f)));
     if (ImGui.IsItemHovered())
+    {
       using (ImRaii.Tooltip())
-        ImGui.Text(Loc.Get(Loc.Phrase.PvPTooltip));
+      {
+        ImGui.Text(_loc.Get(Loc.Phrase.PvPTooltip));
+      }
+    }
 
     bool useGAROTitleInPvP = characterConfig.UseGAROTitleInPvP;
-    if (ImGui.Checkbox(Loc.Get(Loc.Phrase.UseGAROTitleInPvP), ref useGAROTitleInPvP))
+    if (ImGui.Checkbox(_loc.Get(Loc.Phrase.UseGAROTitleInPvP), ref useGAROTitleInPvP))
     {
       characterConfig.UseGAROTitleInPvP = useGAROTitleInPvP;
-      Configuration.SaveCharacterConfig(characterConfig);
-      TitleService.UpdateTitle();
+      _configuration.SaveCharacterConfig(characterConfig);
+      _titleService.UpdateTitle();
     }
 
     if (characterConfig.UseGAROTitleInPvP)
     {
       bool tryUseGAROTitleForCurrentJob = characterConfig.TryUseGAROTitleForCurrentJob;
-      if (ImGui.Checkbox(Loc.Get(Loc.Phrase.TryUseGAROTitleForCurrentJob), ref tryUseGAROTitleForCurrentJob))
+      if (ImGui.Checkbox(_loc.Get(Loc.Phrase.TryUseGAROTitleForCurrentJob), ref tryUseGAROTitleForCurrentJob))
       {
         characterConfig.TryUseGAROTitleForCurrentJob = tryUseGAROTitleForCurrentJob;
-        Configuration.SaveCharacterConfig(characterConfig);
-        TitleService.UpdateTitle();
+        _configuration.SaveCharacterConfig(characterConfig);
+        _titleService.UpdateTitle();
       }
 
-      ImGui.SetNextItemWidth(ScaledFloat(200));
+      ImGui.SetNextItemWidth(Scaled(200.0f));
       string selectedTitleName = characterConfig.GAROTitleIdV2 == TitleService.TitleIds.DoNotOverride
-        ? Loc.Get(Loc.Phrase.SelectTitle)
-        : TitleService.GetTitleName(characterConfig.GAROTitleIdV2);
-      using (ImRaii.ComboDisposable dropdown = ImRaii.Combo("###GAROTitleSelect", selectedTitleName))
-      {
-        if (dropdown.Success)
-        {
-          int titles = 0;
-          foreach (Title title in DataManager.Excel.GetSheet<Title>(Loc.Language).Where(t => TitleService.IsGaroTitle(TitleService.ToTitleId(t.RowId)) && TitleService.IsTitleUnlocked(TitleService.ToTitleId(t.RowId))))
-          {
-            titles++;
-            if (ImGui.Selectable(TitleService.GetTitleName(title), characterConfig.GAROTitleIdV2 == title.RowId))
-            {
-              characterConfig.GAROTitleIdV2 = TitleService.ToTitleId(title.RowId);
-              Configuration.SaveCharacterConfig(characterConfig);
-              TitleService.UpdateTitle();
-            }
-          }
+        ? _loc.Get(Loc.Phrase.SelectTitle)
+        : _titleService.GetTitleName(characterConfig.GAROTitleIdV2);
 
-          if (titles == 0)
+      using ImRaii.ComboDisposable dropdown = ImRaii.Combo("###GAROTitleSelect", selectedTitleName);
+      if (dropdown.Success)
+      {
+        int titles = 0;
+        IEnumerable<Title> validTitles = _dataManager.Excel.GetSheet<Title>(_loc.Language)
+          .Where(t =>
+            _titleService.IsGaroTitle(TitleService.ToTitleId(t.RowId)) &&
+            _titleService.IsTitleUnlocked(TitleService.ToTitleId(t.RowId)));
+
+        foreach (Title title in validTitles)
+        {
+          titles++;
+          if (ImGui.Selectable(_titleService.GetTitleName(title), characterConfig.GAROTitleIdV2 == title.RowId))
           {
-            ImGui.Text(Loc.Get(Loc.Phrase.NoGAROTitlesUnlocked));
+            characterConfig.GAROTitleIdV2 = TitleService.ToTitleId(title.RowId);
+            _configuration.SaveCharacterConfig(characterConfig);
+            _titleService.UpdateTitle();
           }
+        }
+
+        if (titles == 0)
+        {
+          ImGui.Text(_loc.Get(Loc.Phrase.NoGAROTitlesUnlocked));
         }
       }
     }
 
-    ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 5);
-    ImGui.Text(Loc.Get(Loc.Phrase.Other));
-    ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 10);
+    ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 5.0f);
+    ImGui.Text(_loc.Get(Loc.Phrase.Other));
+    ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 10.0f);
 
-    bool printTitleChangesInChat = Configuration.PrintTitleChangesInChat;
-    if (ImGui.Checkbox(Loc.Get(Loc.Phrase.PrintTitleChangesInChat), ref printTitleChangesInChat))
+    bool printTitleChangesInChat = _configuration.PrintTitleChangesInChat;
+    if (ImGui.Checkbox(_loc.Get(Loc.Phrase.PrintTitleChangesInChat), ref printTitleChangesInChat))
     {
-      Configuration.PrintTitleChangesInChat = printTitleChangesInChat;
-      Configuration.Save();
+      _configuration.PrintTitleChangesInChat = printTitleChangesInChat;
+      _configuration.Save();
     }
 
-    bool debug = Configuration.Debug;
-    if (ImGui.Checkbox(Loc.Get(Loc.Phrase.Debug), ref debug))
+    bool debug = _configuration.Debug;
+    if (ImGui.Checkbox(_loc.Get(Loc.Phrase.Debug), ref debug))
     {
-      Configuration.Debug = debug;
-      Configuration.Save();
+      _configuration.Debug = debug;
+      _configuration.Save();
     }
 
-    ImGui.SameLine(ImGui.GetContentRegionAvail().X - (ScaledFloat(40)));
-    ImGui.SetCursorPosY(ImGui.GetCursorPosY() - (ScaledFloat(25)));
-    DrawGambler(ScaledVector2(50));
+    ImGui.SameLine(ImGui.GetContentRegionAvail().X - Scaled(40.0f));
+    ImGui.SetCursorPosY(ImGui.GetCursorPosY() - Scaled(25.0f));
+    DrawGambler(new(Scaled(50.0f)));
   }
 
   private void DrawGambler(Vector2 size)
   {
-    CharacterConfig characterConfig = Configuration.GetCharacterConfig();
+    CharacterConfig characterConfig = _configuration.GetCharacterConfig();
     if (!characterConfig.JobTitleMappingsV2.TryGetValue(JobService.Job.AST, out TitleId titleId)) return;
     if (titleId != 195) return; // Gambler
 
-    string gamblerImagePath = Path.Combine(PluginInterface.AssemblyLocation.Directory?.FullName!, "gambler.png");
-    IDalamudTextureWrap? gamblerImage = TextureProvider.GetFromFile(gamblerImagePath).GetWrapOrDefault();
+    string gamblerImagePath = Path.Combine(_pluginInterface.AssemblyLocation.Directory?.FullName!, "gambler.png");
+    IDalamudTextureWrap? gamblerImage = _textureProvider.GetFromFile(gamblerImagePath).GetWrapOrDefault();
     if (gamblerImage == null)
     {
-      Logger.Error($"Failed to find gambler from gamblerImagePath::{gamblerImagePath}");
+      _logger.Error($"Failed to find gambler from gamblerImagePath::{gamblerImagePath}");
       return;
     }
 
     ImGui.Image(gamblerImage.Handle, size);
     if (ImGui.IsItemHovered())
+    {
       using (ImRaii.Tooltip())
+      {
         ImGui.Text("Gambi is the Gambler");
+      }
+    }
   }
 
   private void DrawLanguageSelectable(Language language)
   {
-    if (ImGui.Selectable(Loc.GetLanguageName(language), Configuration.Language == language))
+    if (ImGui.Selectable(_loc.GetLanguageName(language), _configuration.Language == language))
     {
-      Configuration.Language = language;
-      Configuration.Save();
+      _configuration.Language = language;
+      _configuration.Save();
     }
   }
 
   private int DrawJobTitleSelectRows(Func<ClassJob, bool> shouldRenderJobRow)
   {
     int rows = 0;
-    CharacterConfig characterConfig = Configuration.GetCharacterConfig();
+    CharacterConfig characterConfig = _configuration.GetCharacterConfig();
     foreach (JobService.Job job in JobService.AllJobs)
     {
-      if (JobService.IsClass(job) && characterConfig.ClassMode != CharacterConfig.ClassModeOption.ShowClasses)
+      if (_jobService.IsClass(job) && characterConfig.ClassMode != CharacterConfig.ClassModeOption.ShowClasses)
         continue;
 
-      if (!DataManager.Excel.GetSheet<ClassJob>(Loc.Language).TryGetRow((uint)job, out ClassJob jobRow))
+      if (!_dataManager.Excel.GetSheet<ClassJob>(_loc.Language).TryGetRow((uint)job, out ClassJob jobRow))
       {
-        Logger.Error($"Unable to retrieve data for row {(uint)job}. Not drawing title selection.");
+        _logger.Error($"Unable to retrieve data for row {(uint)job}. Not drawing title selection.");
         continue;
       }
 
@@ -349,9 +348,9 @@ public class ConfigWindow : Window, IDisposable
 
       // 62100 - job icons with background
       uint jobIconId = 62100 + (uint)job;
-      if (!TextureProvider.TryGetFromGameIcon(new GameIconLookup(jobIconId), out ISharedImmediateTexture? jobIcon))
+      if (!_textureProvider.TryGetFromGameIcon(new GameIconLookup(jobIconId), out ISharedImmediateTexture? jobIcon))
       {
-        Logger.Error($"Unable to retrieve icon for jobIconId::{jobIconId}. Not drawing title selection.");
+        _logger.Error($"Unable to retrieve icon for jobIconId::{jobIconId}. Not drawing title selection.");
         continue;
       }
 
@@ -363,36 +362,42 @@ public class ConfigWindow : Window, IDisposable
     return rows;
   }
 
-  private void DrawJobTitleSelectRow(ClassJob jobRow, ISharedImmediateTexture jobIcon, JobService.Job job, TitleId selectedTitleId)
+  private void DrawJobTitleSelectRow(
+    ClassJob jobRow,
+    ISharedImmediateTexture jobIcon,
+    JobService.Job job,
+    TitleId selectedTitleId)
   {
     // Draw Job Icon with vertically centered Job Name
     string jobName = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(jobRow.Name.ExtractText());
-    Vector2 iconSize = ScaledVector2(24);
+    Vector2 iconSize = new(Scaled(24.0f));
     float verticalOffset = (iconSize.Y - ImGui.CalcTextSize(jobName).Y) / 2.0f;
     ImGui.Image(jobIcon.GetWrapOrEmpty().Handle, iconSize);
     ImGui.SameLine();
     ImGui.SetCursorPosY(ImGui.GetCursorPosY() + verticalOffset);
     ImGui.Text(jobName);
     if (ImGui.IsItemHovered())
+    {
       using (ImRaii.Tooltip())
-        ImGui.Text(string.Format(Loc.Get(Loc.Phrase.JobNameTooltip), jobName));
+      {
+        ImGui.Text(string.Format(CultureInfo.CurrentCulture, _loc.Get(Loc.Phrase.JobNameTooltip), jobName));
+      }
+    }
     // ImGui.SetCursorPosY(ImGui.GetCursorPosY() - verticalOffset);
 
     // Set size and distance for the dropdown
-    ImGui.SameLine(ScaledFloat(140));
+    ImGui.SameLine(Scaled(140.0f));
     ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
 
-    string selectedTitleName = TitleService.GetTitleName(selectedTitleId);
-    using (ImRaii.ComboDisposable dropdown = ImRaii.Combo($"###Title{jobRow.RowId}", selectedTitleName))
+    string selectedTitleName = _titleService.GetTitleName(selectedTitleId);
+    using ImRaii.ComboDisposable dropdown = ImRaii.Combo($"###Title{jobRow.RowId}", selectedTitleName);
+    if (dropdown.Success)
     {
-      if (dropdown.Success)
-      {
-        DrawJobTitleDropdownContents(job, selectedTitleId);
-      }
-      else
-      {
-        _dropdownDrawState[job] = true;
-      }
+      DrawJobTitleDropdownContents(job, selectedTitleId);
+    }
+    else
+    {
+      _dropdownDrawState[job] = true;
     }
   }
 
@@ -406,27 +411,29 @@ public class ConfigWindow : Window, IDisposable
     }
 
     ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - (ImGui.GetStyle().ScrollbarSize / ImGuiHelpers.GlobalScale));
-    ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 2);
-    ImGui.InputTextWithHint("###TitleSearch", Loc.Get(Loc.Phrase.Search), ref _titleSearchTerm, 256, ImGuiInputTextFlags.AutoSelectAll);
+    ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 2.0f);
+    ImGui.InputTextWithHint("###TitleSearch", _loc.Get(Loc.Phrase.Search), ref _titleSearchTerm, 256, ImGuiInputTextFlags.AutoSelectAll);
 
-    DrawTitleSelectable(Loc.Get(Loc.Phrase.DoNotOverride), TitleService.TitleIds.DoNotOverride, job, selectedTitleId);
-    DrawTitleSelectable(Loc.Get(Loc.Phrase.None), TitleService.TitleIds.None, job, selectedTitleId);
+    DrawTitleSelectable(_loc.Get(Loc.Phrase.DoNotOverride), TitleService.TitleIds.DoNotOverride, job, selectedTitleId);
+    DrawTitleSelectable(_loc.Get(Loc.Phrase.None), TitleService.TitleIds.None, job, selectedTitleId);
 
-    foreach (Title title in DataManager.Excel.GetSheet<Title>(Loc.Language).Where(t => t.RowId != 0 && TitleService.IsTitleUnlocked(TitleService.ToTitleId(t.RowId))))
+    IEnumerable<Title> validTitles = _dataManager.Excel.GetSheet<Title>(_loc.Language)
+      .Where(t => t.RowId != 0 && _titleService.IsTitleUnlocked(TitleService.ToTitleId(t.RowId)));
+    foreach (Title title in validTitles)
     {
-      DrawTitleSelectable(TitleService.GetTitleName(title), TitleService.ToTitleId(title.RowId), job, selectedTitleId);
+      DrawTitleSelectable(_titleService.GetTitleName(title), TitleService.ToTitleId(title.RowId), job, selectedTitleId);
     }
   }
 
   private void DrawTitleSelectable(string option, TitleId titleId, JobService.Job job, int selectedTitleId)
   {
     string titleSearchTermTrimmed = _titleSearchTerm.Trim();
-    if (titleSearchTermTrimmed.Length == 0 || option.IndexOf(titleSearchTermTrimmed, StringComparison.OrdinalIgnoreCase) >= 0)
+    if (titleSearchTermTrimmed.Length == 0 || option.Contains(titleSearchTermTrimmed, StringComparison.OrdinalIgnoreCase))
     {
       if (ImGui.Selectable(option, selectedTitleId == titleId))
       {
-        TitleService.SaveJobTitleMapping(job, titleId);
-        TitleService.UpdateTitle();
+        _titleService.SaveJobTitleMapping(job, titleId);
+        _titleService.UpdateTitle();
       }
     }
   }

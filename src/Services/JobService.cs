@@ -1,20 +1,16 @@
 namespace JobTitles.Services;
 
-public class JobService
+public interface IJobService
+{
+  JobService.Job GetCurrentJob();
+  void JobChanged(JobService.Job job);
+  bool IsClass(JobService.Job job);
+  JobService.Job GetJobFromClass(JobService.Job job);
+}
+
+public class JobService(IObjectTable _objectTable) : IJobService
 {
   private Job _lastJob = Job.ADV;
-
-  private readonly IObjectTable ObjectTable;
-
-  public JobService(IObjectTable objectTable)
-  {
-    ObjectTable = objectTable;
-  }
-
-  public void OnJobChanged(Job job)
-  {
-    _lastJob = job;
-  }
 
   public enum Job : uint
   {
@@ -23,12 +19,12 @@ public class JobService
     DNC, RPR, SGE, VPR, PCT, BST
   };
 
-  public static readonly HashSet<Job> Tanks = new() { Job.PLD, Job.WAR, Job.DRK, Job.GNB, Job.GLD, Job.MRD };
-  public static readonly HashSet<Job> Healers = new() { Job.WHM, Job.SCH, Job.AST, Job.SGE, Job.CNJ };
-  public static readonly HashSet<Job> Melee = new() { Job.MNK, Job.DRG, Job.NIN, Job.SAM, Job.RPR, Job.VPR, Job.PUG, Job.LNC, Job.ROG, Job.BST };
-  public static readonly HashSet<Job> Ranged = new() { Job.BRD, Job.MCH, Job.DNC, Job.BLM, Job.SMN, Job.RDM, Job.PCT, Job.BLU, Job.ARC, Job.THM, Job.ACN };
-  public static readonly HashSet<Job> Crafters = new() { Job.CRP, Job.BSM, Job.ARM, Job.GSM, Job.LTW, Job.WVR, Job.ALC, Job.CUL };
-  public static readonly HashSet<Job> Gatherers = new() { Job.MIN, Job.BOT, Job.FSH };
+  public static readonly HashSet<Job> Tanks = [Job.PLD, Job.WAR, Job.DRK, Job.GNB, Job.GLD, Job.MRD];
+  public static readonly HashSet<Job> Healers = [Job.WHM, Job.SCH, Job.AST, Job.SGE, Job.CNJ];
+  public static readonly HashSet<Job> Melee = [Job.MNK, Job.DRG, Job.NIN, Job.SAM, Job.RPR, Job.VPR, Job.PUG, Job.LNC, Job.ROG, Job.BST];
+  public static readonly HashSet<Job> Ranged = [Job.BRD, Job.MCH, Job.DNC, Job.BLM, Job.SMN, Job.RDM, Job.PCT, Job.BLU, Job.ARC, Job.THM, Job.ACN];
+  public static readonly HashSet<Job> Crafters = [Job.CRP, Job.BSM, Job.ARM, Job.GSM, Job.LTW, Job.WVR, Job.ALC, Job.CUL];
+  public static readonly HashSet<Job> Gatherers = [Job.MIN, Job.BOT, Job.FSH];
 
   private static readonly Dictionary<Job, Job> ClassJobMap = new()
   {
@@ -43,16 +39,20 @@ public class JobService
     { Job.ROG, Job.NIN },
   };
 
-  public IEnumerable<Job> AllJobs => Tanks.Concat(Healers).Concat(Melee).Concat(Ranged).Concat(Crafters).Concat(Gatherers);
+  public static IEnumerable<Job> AllJobs =>
+    Tanks.Concat(Healers).Concat(Melee).Concat(Ranged).Concat(Crafters).Concat(Gatherers);
 
   public static Job ToJob(uint jobId) => Enum.IsDefined(typeof(Job), jobId) ? (Job)jobId : Job.ADV;
 
   public Job GetCurrentJob()
   {
-    if (ObjectTable.LocalPlayer == null) return _lastJob;
-    _lastJob = ToJob(ObjectTable.LocalPlayer.ClassJob.RowId);
+    if (_objectTable.LocalPlayer == null) return _lastJob;
+    _lastJob = ToJob(_objectTable.LocalPlayer.ClassJob.RowId);
     return _lastJob;
   }
+
+  public void JobChanged(Job job)
+    => _lastJob = job;
 
   public bool IsClass(Job job) => ClassJobMap.ContainsKey(job);
 
